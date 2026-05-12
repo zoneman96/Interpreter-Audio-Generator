@@ -1,59 +1,43 @@
-# Interpreter Audio Generator — Streamlit Cloud
+# Interpreter Audio Generator — Web 1.2
 
-A Streamlit app for interpreter-training JSON scripts. It can generate audio outputs, create visual practice packets, and run an in-session consecutive practice tool with source/correction audio.
+Cloud-safe Streamlit version of the interpreter training audio/practice app.
 
-## Files in this repository
+## Streamlit Community Cloud entrypoint
 
 ```text
 audio_generator_streamlit_cloud.py
-Current_Audio_Generator_Script_JSON_to_MP3_V7.py
-generate_practice_docx.py
-requirements.txt
-packages.txt
-README.md
-.gitignore
 ```
 
-## Run locally
+## What is included in Web 1.2
+
+- Upload-based JSON workflow for Streamlit Cloud
+- Temporary runtime folders instead of Mac-specific output folders
+- Generated-output ZIP downloads
+- Consecutive practice with source/correction audio
+- Consecutive playback speed controls: 0.85x through 1.50x
+- Consecutive audio-only source mode
+- Side-by-side source/reference practice view
+- Compact segment metadata rows
+- Simultaneous practice with paragraph/chunk and full-passage modes
+- Simultaneous playback speed controls: 0.85x through 1.50x
+- Lag trainer, shadowing mode, and repeat-loop source audio
+- Full-passage voice preservation using `audio_profile` when available
+- Term review with spoken prompt/answer audio
+- Spaced term review / SRS-style review state for the current app session
+- Downloadable practice/session logs
+- Sample consecutive and simultaneous JSON files in `sample_json/`
+
+## Cloud storage note
+
+The free Streamlit Cloud version should be treated as session-based. Runtime audio, cache files, and progress logs may reset. Download generated ZIP files and CSV logs if you want to keep them.
+
+## Local test
 
 ```bash
 python -m pip install -r requirements.txt
 streamlit run audio_generator_streamlit_cloud.py
 ```
 
-You also need `ffmpeg` installed locally. On macOS with Homebrew:
+## System package
 
-```bash
-brew install ffmpeg
-```
-
-## Deploy on Streamlit Community Cloud
-
-1. Create a GitHub repository.
-2. Upload the files listed above.
-3. In Streamlit Community Cloud, create a new app from the GitHub repo.
-4. Set the app entrypoint to:
-
-```text
-audio_generator_streamlit_cloud.py
-```
-
-5. Deploy.
-
-`requirements.txt` installs Python dependencies. `packages.txt` installs the Linux system package `ffmpeg` for audio concatenation.
-
-## How the cloud version works
-
-The cloud version does not use a local Mac output folder. Instead:
-
-- Upload JSON files in the sidebar.
-- Generate audio and/or practice packets.
-- Download the generated ZIP files.
-- Use the interactive consecutive practice tab during the current session.
-- Download the practice session CSV before closing the browser tab.
-
-Cloud storage is temporary, so do not rely on generated files staying on the server.
-
-## GitHub hygiene
-
-Do not commit generated outputs, virtual environments, cache folders, or the local `.command` launcher. The `.gitignore` file in this package excludes those items.
+`packages.txt` includes `ffmpeg` for audio processing support on Streamlit Community Cloud.

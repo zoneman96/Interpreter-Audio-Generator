@@ -1,0 +1,1942 @@
+{
+  "script_id": "DC-TRAFFIC-ARR-MASTER-001-FIVE-DEFENDANT-CALENDAR",
+  "category": "Traffic Arraignment",
+  "subcategory": "Combined Douglas County Traffic Calendar / Five Spanish-Speaking Defendants",
+  "title": "Douglas County Traffic Arraignment Calendar — Five Spanish-Speaking Defendants",
+  "format": "consecutive_courtroom_arraignment_master_calendar",
+  "jurisdiction_context": {
+    "court": "Douglas County Court, Omaha, Nebraska",
+    "hearing_type": "Traffic arraignment calendar / group rights advisement followed by individual arraignments",
+    "scenario": "A single realistic traffic arraignment calendar with one group rights advisement and five Spanish-speaking defendants called one at a time. The cases include no proof of insurance plus no valid registration, no valid license plus speeding with time to pay, driving under suspension with public defender appointment, provisional operator permit plus seat belt with parent involvement, and leaving the scene of a property-damage accident with restitution issue and reset for counsel.",
+    "language_pattern": "Judge, prosecutor, public defender, bailiff, clerk, and interpreter introduction are English-source. Defendants and Spanish-speaking parent are Spanish-source. Each paired segment preserves source language first followed by the interpretation.",
+    "fictionalization_note": "Names, case numbers, dates, and facts are fictional and created for interpreter training. The flow is modeled on a realistic Douglas County traffic arraignment calendar, not a verbatim transcript."
+  },
+  "audio_profile": {
+    "voice_mode": "speaker",
+    "default_voices": {
+      "english": "en-US-JennyNeural",
+      "spanish": "es-MX-DaliaNeural"
+    },
+    "voice_assignments": {
+      "JUDGE": {
+        "english": "en-US-GuyNeural",
+        "spanish": "es-MX-JorgeNeural",
+        "description": "adult male judge"
+      },
+      "PROSECUTOR": {
+        "english": "en-US-MichelleNeural",
+        "spanish": "es-MX-DaliaNeural",
+        "description": "adult female prosecutor"
+      },
+      "PUBLIC DEFENDER": {
+        "english": "en-US-BrianNeural",
+        "spanish": "es-MX-JorgeNeural",
+        "description": "adult male public defender"
+      },
+      "BAILIFF": {
+        "english": "en-US-ChristopherNeural",
+        "spanish": "es-MX-JorgeNeural",
+        "description": "adult male bailiff"
+      },
+      "CLERK": {
+        "english": "en-US-AriaNeural",
+        "spanish": "es-MX-DaliaNeural",
+        "description": "neutral court clerk voice"
+      },
+      "INTERPRETER": {
+        "english": "en-US-AriaNeural",
+        "spanish": "es-MX-DaliaNeural",
+        "description": "neutral interpreter voice"
+      },
+      "DEFENDANT_1": {
+        "english": "en-US-RogerNeural",
+        "spanish": "es-MX-JorgeNeural",
+        "description": "Luis Mendoza, adult male Spanish-speaking defendant"
+      },
+      "DEFENDANT_2": {
+        "english": "en-US-JennyNeural",
+        "spanish": "es-US-PalomaNeural",
+        "description": "Rosa Delgado, adult female Spanish-speaking defendant"
+      },
+      "DEFENDANT_3": {
+        "english": "en-US-SteffanNeural",
+        "spanish": "es-US-AlonsoNeural",
+        "description": "Carlos Ibarra, adult male Spanish-speaking defendant"
+      },
+      "DEFENDANT_4": {
+        "english": "en-US-AnaNeural",
+        "spanish": "es-MX-DaliaNeural",
+        "description": "Ana Perez, younger female Spanish-speaking defendant"
+      },
+      "DEFENDANT_5": {
+        "english": "en-US-EricNeural",
+        "spanish": "es-ES-AlvaroNeural",
+        "description": "Hector Ramirez, adult male Spanish-speaking defendant"
+      },
+      "PARENT": {
+        "english": "en-US-EmmaNeural",
+        "spanish": "es-ES-ElviraNeural",
+        "description": "Patricia Perez, adult female Spanish-speaking parent"
+      }
+    },
+    "speak_speaker_labels": false,
+    "notes": "Defendants have unique speaker labels so the audio generator can assign distinct Edge TTS voices. If a voice is unavailable, use the script fallback behavior."
+  },
+  "terms_used": [
+    {
+      "english": "arraignment",
+      "spanish_contextual_choice": "instrucción de cargos",
+      "spanish_alternatives_from_sheet": [
+        "instrucción de cargos",
+        "lectura de cargos"
+      ]
+    },
+    {
+      "english": "the State",
+      "spanish_contextual_choice": "la fiscalía",
+      "spanish_alternatives_from_sheet": [
+        "la fiscalía"
+      ]
+    },
+    {
+      "english": "defendant",
+      "spanish_contextual_choice": "el acusado / la acusada",
+      "spanish_alternatives_from_sheet": [
+        "el acusado",
+        "la acusada"
+      ]
+    },
+    {
+      "english": "right to an attorney",
+      "spanish_contextual_choice": "derecho a un abogado",
+      "spanish_alternatives_from_sheet": [
+        "derecho a un abogado"
+      ]
+    },
+    {
+      "english": "right to remain silent",
+      "spanish_contextual_choice": "derecho a guardar silencio",
+      "spanish_alternatives_from_sheet": [
+        "derecho a guardar silencio",
+        "derecho a permanecer callado"
+      ]
+    },
+    {
+      "english": "cross-examine",
+      "spanish_contextual_choice": "contra-interrogar",
+      "spanish_alternatives_from_sheet": [
+        "contra-interrogar"
+      ]
+    },
+    {
+      "english": "proof beyond a reasonable doubt",
+      "spanish_contextual_choice": "prueba más allá de toda duda razonable",
+      "spanish_alternatives_from_sheet": [
+        "prueba más allá de toda duda razonable"
+      ]
+    },
+    {
+      "english": "no contest",
+      "spanish_contextual_choice": "no me opongo",
+      "spanish_alternatives_from_sheet": [
+        "no me opongo"
+      ]
+    },
+    {
+      "english": "factual basis",
+      "spanish_contextual_choice": "bases fácticas",
+      "spanish_alternatives_from_sheet": [
+        "bases fácticas",
+        "Las bases fácticas"
+      ]
+    },
+    {
+      "english": "take judicial notice",
+      "spanish_contextual_choice": "tomar conocimiento de oficio",
+      "spanish_alternatives_from_sheet": [
+        "tomar conocimiento de oficio"
+      ]
+    },
+    {
+      "english": "vehicle registration",
+      "spanish_contextual_choice": "matrícula de circulación",
+      "spanish_alternatives_from_sheet": [
+        "matrícula de circulación"
+      ]
+    },
+    {
+      "english": "valid driver’s license / operator’s license",
+      "spanish_contextual_choice": "licencia de conducir válida / licencia de operador válida",
+      "spanish_alternatives_from_sheet": [
+        "licencia de conducir válida",
+        "licencia de operador válida"
+      ]
+    },
+    {
+      "english": "auto insurance / liability insurance",
+      "spanish_contextual_choice": "seguro automovilístico / seguro de responsabilidad civil",
+      "spanish_alternatives_from_sheet": [
+        "seguro automovilístico",
+        "seguro de responsabilidad civil"
+      ]
+    },
+    {
+      "english": "speeding",
+      "spanish_contextual_choice": "exceso de velocidad",
+      "spanish_alternatives_from_sheet": [
+        "exceso de velocidad"
+      ]
+    },
+    {
+      "english": "driving during suspension",
+      "spanish_contextual_choice": "conducir durante un período de suspensión",
+      "spanish_alternatives_from_sheet": [
+        "conducir durante un período de suspensión"
+      ]
+    },
+    {
+      "english": "public defender",
+      "spanish_contextual_choice": "defensor público",
+      "spanish_alternatives_from_sheet": [
+        "defensor público"
+      ]
+    },
+    {
+      "english": "pretrial conference",
+      "spanish_contextual_choice": "audiencia previa al juicio",
+      "spanish_alternatives_from_sheet": [
+        "audiencia previa al juicio"
+      ]
+    },
+    {
+      "english": "seat belt",
+      "spanish_contextual_choice": "cinturón de seguridad",
+      "spanish_alternatives_from_sheet": [
+        "cinturón de seguridad"
+      ]
+    },
+    {
+      "english": "provisional operator’s permit",
+      "spanish_contextual_choice": "permiso provisional de operador",
+      "spanish_alternatives_from_sheet": [
+        "permiso provisional de operador"
+      ]
+    },
+    {
+      "english": "leaving the scene",
+      "spanish_contextual_choice": "abandonar el lugar",
+      "spanish_alternatives_from_sheet": [
+        "abandonar el lugar"
+      ]
+    },
+    {
+      "english": "property-damage accident",
+      "spanish_contextual_choice": "accidente con daños a la propiedad",
+      "spanish_alternatives_from_sheet": [
+        "accidente con daños a la propiedad"
+      ]
+    },
+    {
+      "english": "restitution",
+      "spanish_contextual_choice": "resarcimiento",
+      "spanish_alternatives_from_sheet": [
+        "resarcimiento"
+      ]
+    },
+    {
+      "english": "backing",
+      "spanish_contextual_choice": "dar marcha atrás",
+      "spanish_alternatives_from_sheet": [
+        "dar marcha atrás"
+      ]
+    },
+    {
+      "english": "court clerk",
+      "spanish_contextual_choice": "actuario",
+      "spanish_alternatives_from_sheet": [
+        "actuario"
+      ]
+    }
+  ],
+  "english_script": "BAILIFF: All rise. Douglas County Court is now in session, the Honorable Daniel Harper presiding.\nJUDGE: Good morning. Please be seated. This is the traffic arraignment calendar for Douglas County Court in Omaha, Nebraska.\nINTERPRETER: For the record, the Spanish interpreter is present and will interpret everything said in English into Spanish and everything said in Spanish into English.\nJUDGE: Before I call individual cases, I am going to advise everyone of their rights. Please listen carefully, because I will ask each of you whether you heard and understood these rights when you come forward.\nJUDGE: You have the right to an attorney. If you cannot afford an attorney and jail is a possible penalty, an attorney may be appointed to represent you at public expense.\nJUDGE: You have the right to a trial, and in some cases you may have the right to a jury trial.\nJUDGE: At trial, the State would have to prove the charge against you beyond a reasonable doubt. You are presumed innocent unless and until the State proves you guilty.\nJUDGE: You have the right to confront and cross-examine witnesses called against you.\nJUDGE: You have the right to use the court’s subpoena power to require witnesses to come to court on your behalf.\nJUDGE: You have the right to remain silent. Your silence cannot be used against you.\nJUDGE: If you are not a United States citizen, a conviction may have immigration consequences, including removal from the United States or denial of naturalization under federal law.\nJUDGE: If you enter a plea of guilty or no contest today, you will give up the trial rights I just described, except that you keep your right to an attorney and your right to appeal.\nJUDGE: If the State gives me a factual basis and I accept your plea, I may find you guilty and sentence you today.\nJUDGE: I will call each case one at a time. When your name is called, please come forward with the interpreter.\nJUDGE: Calling State of Nebraska versus Luis Mendoza, case number CR 26-5801. Mr. Mendoza, please step forward.\nDEFENDANT_1: Yes, I am here, Your Honor.\nJUDGE: Mr. Mendoza, did you hear the rights I announced earlier in the call?\nDEFENDANT_1: Yes, I heard them.\nJUDGE: Did you understand those rights?\nDEFENDANT_1: Yes, I understand.\nJUDGE: You are charged with failing to show proof of liability insurance, punishable by a fine of up to five hundred dollars.\nJUDGE: You are also charged with not having valid vehicle registration, punishable by up to ninety days in jail, a fine of up to five hundred dollars, or both.\nJUDGE: Do you understand the possible penalties?\nDEFENDANT_1: Yes, but I already fixed the registration and I have insurance now.\nPROSECUTOR: Your Honor, if the defendant pleads guilty to the insurance count, the State would dismiss the registration count and recommend a seventy-five dollar fine.\nJUDGE: Mr. Mendoza, do you understand the State’s offer?\nDEFENDANT_1: Yes. If I accept, the registration charge goes away and I pay the insurance fine.\nJUDGE: Is that something you wish to accept?\nDEFENDANT_1: Yes, I want to accept that.\nJUDGE: How do you plead to the charge of failing to show proof of liability insurance: guilty, not guilty, or no contest?\nDEFENDANT_1: Guilty.\nJUDGE: Has anyone forced or threatened you to enter that guilty plea?\nDEFENDANT_1: No.\nJUDGE: Do you understand that by entering that plea, you are giving up the trial rights I described earlier?\nDEFENDANT_1: Yes, I understand.\nPROSECUTOR: The State would provide a factual basis from the citation and officer’s sworn complaint. On March 8th, in Douglas County, the defendant was stopped near 24th and L Street and could not provide proof of liability insurance.\nJUDGE: The Court takes judicial notice of the citation and complaint. I find a factual basis exists and that the plea is entered knowingly, intelligently, and voluntarily.\nJUDGE: I adjudge the defendant guilty of failing to show proof of liability insurance. Count Two, no valid registration, is dismissed pursuant to the agreement.\nJUDGE: On Count One, I will follow the recommendation. You are fined seventy-five dollars, plus court costs.\nJUDGE: Are you able to pay that today?\nDEFENDANT_1: Yes, I can pay it today.\nJUDGE: Please have a seat in the hallway. The clerk will call your name and take you to the payment window.\nJUDGE: Calling State of Nebraska versus Rosa Delgado, case number CR 26-5802. Ms. Delgado, please step forward.\nDEFENDANT_2: Good morning.\nJUDGE: Ms. Delgado, did you hear and understand the rights I announced earlier?\nDEFENDANT_2: Yes, I understood them.\nJUDGE: You are charged with no valid operator’s license, punishable by up to ninety days in jail, a fine of up to five hundred dollars, or both.\nJUDGE: You are also charged with speeding, eleven to fifteen miles per hour over the posted limit, punishable by a fine.\nJUDGE: Do you understand those possible penalties?\nDEFENDANT_2: Yes. I had a license from Mexico, but I did not have one from Nebraska.\nPROSECUTOR: Your Honor, the State would offer to dismiss the speeding count if the defendant pleads guilty to no valid operator’s license. The recommendation would be a one hundred dollar fine.\nJUDGE: Ms. Delgado, do you understand the offer?\nDEFENDANT_2: Yes, I understand that I plead guilty to the license and the speeding is dismissed.\nJUDGE: Do you wish to accept that offer?\nDEFENDANT_2: Yes, I accept it.\nJUDGE: How do you plead to no valid operator’s license: guilty, not guilty, or no contest?\nDEFENDANT_2: Guilty.\nJUDGE: Is anyone forcing or threatening you to plead guilty?\nDEFENDANT_2: No, no one.\nJUDGE: Do you understand that you are giving up the trial rights I explained earlier?\nDEFENDANT_2: Yes, I understand.\nPROSECUTOR: The factual basis is the officer’s citation and sworn complaint. On February 26th, in Douglas County, the defendant was stopped for driving forty-seven miles per hour in a thirty-five mile-per-hour zone and did not have a valid Nebraska operator’s license.\nJUDGE: The Court takes judicial notice of the citation and complaint. I find the factual basis is sufficient and the plea is knowing, intelligent, and voluntary.\nJUDGE: I find you guilty of no valid operator’s license. The speeding count is dismissed. You are fined one hundred dollars, plus court costs.\nJUDGE: Are you able to pay the fine and costs today?\nDEFENDANT_2: No, Your Honor. I can pay part of it, but I need time to pay everything.\nJUDGE: That is fine. I will allow time to pay. Have a seat in the hallway, and when the clerk calls your name, ask for a payment plan or additional time.\nDEFENDANT_2: Thank you, Your Honor.\nJUDGE: Calling State of Nebraska versus Carlos Ibarra, case number CR 26-5803. Mr. Ibarra, please come forward.\nDEFENDANT_3: Yes, I am here.\nJUDGE: Did you hear and understand the rights announced earlier?\nDEFENDANT_3: Yes, but I am nervous.\nJUDGE: That is understandable. I will go slowly. You are charged with driving during a period of suspension.\nJUDGE: That charge is punishable by up to ninety days in jail, a fine of up to five hundred dollars, or both. It may also affect your driving privileges.\nJUDGE: Do you understand the possible penalties?\nDEFENDANT_3: Yes. I thought I could drive again because I paid some old fines.\nJUDGE: Today is the arraignment. I cannot hear your defense today. Because jail is a possible penalty, I need to ask whether you can afford to hire an attorney.\nJUDGE: Can you afford to hire an attorney?\nDEFENDANT_3: No, I cannot. I work by the hour and I barely pay rent.\nJUDGE: Do you want the public defender appointed to represent you?\nDEFENDANT_3: Yes, please.\nJUDGE: The public defender is appointed. I am entering a plea of not guilty on your behalf today so you have time to speak with your attorney.\nPUBLIC DEFENDER: Your Honor, the Public Defender’s Office accepts appointment for purposes of arraignment and asks that the matter be set for pretrial conference.\nJUDGE: The matter will be set for a pretrial conference. Mr. Ibarra, have a seat in the hallway. Staff will give you the next court date and information on how to contact the public defender.\nDEFENDANT_3: Do I have to pay anything today?\nJUDGE: No fine is imposed today. You must come back on the next court date and stay in contact with your attorney.\nDEFENDANT_3: Okay. Thank you.\nJUDGE: Calling State of Nebraska versus Ana Perez, case number TR 26-5804. Ms. Perez, please come forward with your mother.\nDEFENDANT_4: Yes, Your Honor.\nJUDGE: Ms. Perez, how old are you?\nDEFENDANT_4: I am seventeen years old.\nJUDGE: Ma’am, are you Ana’s mother?\nPARENT: Yes, I am her mother, Patricia Perez.\nJUDGE: Did both of you hear and understand the rights announced earlier?\nDEFENDANT_4: Yes, I understand.\nPARENT: Yes, I also understood.\nJUDGE: Ms. Perez, you are charged with violating the terms of a provisional operator’s permit and failing to use a seat belt. Both are punishable by fines.\nJUDGE: Do you understand the possible consequences?\nDEFENDANT_4: Yes. It was late and I was driving my cousin, but I did not know that was a problem with my permit.\nJUDGE: I understand that you may want to explain, but this is the arraignment. If you want to contest the charge, I can enter a not guilty plea and set the matter for trial.\nPROSECUTOR: Your Honor, the State would offer a plea to the provisional permit violation with a seventy-five dollar fine and would dismiss the seat belt count.\nJUDGE: Ms. Perez, do you understand the offer?\nDEFENDANT_4: I think so, but I want to talk to my mom first.\nJUDGE: That is fine. Take a moment to speak with her. I will wait.\nPARENT: Honey, if you accept, pay the fine and learn from it. But if you think you did not do anything, ask for a trial.\nDEFENDANT_4: I do not want to miss school for a trial. I am going to accept.\nJUDGE: Ms. Perez, have you decided what you want to do?\nDEFENDANT_4: Yes, I want to accept the offer.\nJUDGE: How do you plead to violating the terms of a provisional operator’s permit: guilty, not guilty, or no contest?\nDEFENDANT_4: No contest.\nJUDGE: Has anyone forced or threatened you to enter that plea?\nDEFENDANT_4: No.\nJUDGE: Do you understand that a no contest plea has the same effect as a guilty plea for today’s purposes?\nDEFENDANT_4: Yes.\nPROSECUTOR: The factual basis is the citation. On March 14th, in Douglas County, the defendant was operating under a provisional permit outside the permitted conditions and was cited for a seat belt violation.\nJUDGE: The Court takes judicial notice of the citation. I find a factual basis and find the plea was entered knowingly, intelligently, and voluntarily.\nJUDGE: You are found guilty of the provisional permit violation. The seat belt count is dismissed. The fine is seventy-five dollars, plus court costs.\nPARENT: Can I pay for her today?\nJUDGE: Yes. Please have a seat in the hallway, and the clerk will call your names for payment instructions.\nJUDGE: Calling State of Nebraska versus Hector Ramirez, case number CR 26-5805. Mr. Ramirez, please step forward.\nDEFENDANT_5: I am here, Your Honor.\nJUDGE: Did you hear and understand the rights announced earlier?\nDEFENDANT_5: Yes, I heard them, but I do not understand very well what is going to happen.\nJUDGE: I will explain. You are charged with leaving the scene of a property-damage accident.\nJUDGE: That charge is punishable by up to six months in jail, a fine of up to one thousand dollars, or both. The court may also revoke or impound your license for up to one year.\nJUDGE: You are also charged with improper backing and striking a fixed object, both arising from the same incident.\nJUDGE: Do you understand those possible consequences?\nDEFENDANT_5: Yes, but I did not know I had to stay. I left my number with the owner of the car.\nJUDGE: I cannot decide the facts today. I also see there may be a restitution issue for the property damage.\nJUDGE: Because jail is a possible penalty, can you afford to hire an attorney?\nDEFENDANT_5: No. I need an attorney, but I cannot pay for one.\nJUDGE: The public defender is appointed to represent you. I am entering not guilty pleas on all counts today so you have time to meet with counsel.\nPUBLIC DEFENDER: Your Honor, we accept appointment and ask for a pretrial conference date. We will need the police report and any restitution documentation.\nJUDGE: The matter will be continued for pretrial conference. The State is ordered to provide discovery, including restitution information if available.\nJUDGE: Mr. Ramirez, have a seat in the hallway. Staff will give you your next court date and public defender contact information before you leave.\nDEFENDANT_5: Do I have to call the defender, or will they call me?\nJUDGE: You should call them. Keep your address and phone number updated. If you miss the next court date, a warrant may issue.\nDEFENDANT_5: Yes, I understand. Thank you.\nJUDGE: That concludes the Spanish-interpreted matters currently ready for the traffic arraignment calendar. Thank you.",
+  "spanish_script": "BAILIFF: Todos de pie. Se abre la sesión del Tribunal del Condado de Douglas, presidida por el Honorable Daniel Harper.\nJUDGE: Buenos días. Pueden sentarse. Esta es la lista de audiencias de instrucción de cargos de tránsito del Tribunal del Condado de Douglas en Omaha, Nebraska.\nINTERPRETER: Para que conste en actas, el intérprete de español está presente e interpretará todo lo que se diga en inglés al español y todo lo que se diga en español al inglés.\nJUDGE: Antes de llamar las causas individuales, voy a informarles a todos sobre sus derechos. Por favor escuchen con atención, porque le preguntaré a cada uno si escuchó y entendió estos derechos cuando pase al frente.\nJUDGE: Tiene derecho a un abogado. Si no puede pagar un abogado y la cárcel es una posible sanción, se le puede nombrar un abogado para que lo represente a expensas del erario público.\nJUDGE: Tiene derecho a un juicio, y en algunas causas puede tener derecho a un juicio por jurado.\nJUDGE: En el juicio, la fiscalía tendría que probar el cargo en su contra más allá de toda duda razonable. Se presume que usted es inocente a menos que, y hasta que, la fiscalía pruebe su culpabilidad.\nJUDGE: Tiene derecho a confrontar y contra-interrogar a los testigos llamados en su contra.\nJUDGE: Tiene derecho a usar la facultad del tribunal de citar judicialmente para exigir que los testigos comparezcan al tribunal a su favor.\nJUDGE: Tiene derecho a guardar silencio. Su silencio no se puede usar en su contra.\nJUDGE: Si usted no es ciudadano de los Estados Unidos, una condena puede tener consecuencias migratorias, incluso la deportación de los Estados Unidos o la negación de naturalización conforme a la ley federal.\nJUDGE: Si hoy presenta una declaración de culpable o de no me opongo, renunciará a los derechos de juicio que acabo de describir, excepto que conserva su derecho a un abogado y su derecho a apelar.\nJUDGE: Si la fiscalía me proporciona las bases fácticas y yo acepto su declaración, puedo declararlo culpable e imponerle la condena hoy.\nJUDGE: Llamaré cada causa una por una. Cuando se llame su nombre, por favor pase al frente con el intérprete.\nJUDGE: En la causa de La Fiscalía del Estado de Nebraska contra Luis Mendoza, número de causa CR 26-5801. Señor Mendoza, por favor pase al frente.\nDEFENDANT_1: Sí, aquí estoy, Su Señoría.\nJUDGE: Señor Mendoza, ¿escuchó los derechos que anuncié antes en esta sesión?\nDEFENDANT_1: Sí, los escuché.\nJUDGE: ¿Entendió esos derechos?\nDEFENDANT_1: Sí, entiendo.\nJUDGE: Se le imputa no poder mostrar comprobante de seguro de responsabilidad civil, sancionable con una multa de hasta quinientos dólares.\nJUDGE: También se le imputa no tener matrícula de circulación válida, sancionable con hasta noventa días en la cárcel, una multa de hasta quinientos dólares, o ambas cosas.\nJUDGE: ¿Entiende las posibles sanciones?\nDEFENDANT_1: Sí, pero ya arreglé la matrícula y tengo seguro ahora.\nPROSECUTOR: Su Señoría, si el acusado se declara culpable del cargo de seguro, la fiscalía desestimaría el cargo de matrícula de circulación y recomendaría una multa de setenta y cinco dólares.\nJUDGE: Señor Mendoza, ¿entiende la oferta de la fiscalía?\nDEFENDANT_1: Sí. Si acepto, se quita el cargo de la matrícula y pago la multa del seguro.\nJUDGE: ¿Eso es algo que desea aceptar?\nDEFENDANT_1: Sí, quiero aceptar eso.\nJUDGE: ¿Cómo se declara ante el cargo de no poder mostrar comprobante de seguro de responsabilidad civil: culpable, no culpable o no me opongo?\nDEFENDANT_1: Culpable.\nJUDGE: ¿Alguien lo ha obligado o amenazado para que presente esa declaración de culpable?\nDEFENDANT_1: No.\nJUDGE: ¿Entiende que al presentar esa declaración, renuncia a los derechos de juicio que describí anteriormente?\nDEFENDANT_1: Sí, entiendo.\nPROSECUTOR: La fiscalía proporcionaría las bases fácticas con base en la citación y la acusación formal jurada del agente. El 8 de marzo, en el Condado de Douglas, el acusado fue detenido cerca de la calle 24 y L y no pudo presentar comprobante de seguro de responsabilidad civil.\nJUDGE: El juez toma conocimiento de oficio de la citación y de la acusación formal. Determino que existen bases fácticas y que la declaración se presenta con conocimiento, inteligencia y voluntariamente.\nJUDGE: Declaro al acusado culpable de no poder mostrar comprobante de seguro de responsabilidad civil. El Cargo Dos, no tener matrícula de circulación válida, se desestima conforme al acuerdo.\nJUDGE: En cuanto al Cargo Uno, seguiré la recomendación. Se le impone una multa de setenta y cinco dólares, más costas judiciales.\nJUDGE: ¿Puede pagar eso hoy?\nDEFENDANT_1: Sí, puedo pagarlo hoy.\nJUDGE: Por favor tome asiento en el pasillo. El actuario llamará su nombre y lo llevará a la ventanilla de pago.\nJUDGE: En la causa de La Fiscalía del Estado de Nebraska contra Rosa Delgado, número de causa CR 26-5802. Señora Delgado, por favor pase al frente.\nDEFENDANT_2: Buenos días.\nJUDGE: Señora Delgado, ¿escuchó y entendió los derechos que anuncié anteriormente?\nDEFENDANT_2: Sí, los entendí.\nJUDGE: Se le imputa no tener licencia de conducir válida, sancionable con hasta noventa días en la cárcel, una multa de hasta quinientos dólares, o ambas cosas.\nJUDGE: También se le imputa exceso de velocidad, de once a quince millas por hora por encima del límite indicado, sancionable con una multa.\nJUDGE: ¿Entiende esas posibles sanciones?\nDEFENDANT_2: Sí. Yo tenía licencia de México, pero no tenía una de Nebraska.\nPROSECUTOR: Su Señoría, la fiscalía ofrece desestimar el cargo de exceso de velocidad si la acusada se declara culpable de no tener licencia de operador válida. La recomendación sería una multa de cien dólares.\nJUDGE: Señora Delgado, ¿entiende la oferta?\nDEFENDANT_2: Sí, entiendo que me declaro culpable de la licencia y se desestima la velocidad.\nJUDGE: ¿Desea aceptar esa oferta?\nDEFENDANT_2: Sí, la acepto.\nJUDGE: ¿Cómo se declara ante el cargo de no tener licencia de operador válida: culpable, no culpable o no me opongo?\nDEFENDANT_2: Culpable.\nJUDGE: ¿Alguien la está obligando o amenazando para que se declare culpable?\nDEFENDANT_2: No, nadie.\nJUDGE: ¿Entiende que está renunciando a los derechos de juicio que expliqué anteriormente?\nDEFENDANT_2: Sí, entiendo.\nPROSECUTOR: Las bases fácticas son la citación y la acusación formal jurada del agente. El 26 de febrero, en el Condado de Douglas, la acusada fue detenida por conducir a cuarenta y siete millas por hora en una zona de treinta y cinco millas por hora y no tenía una licencia de operador válida de Nebraska.\nJUDGE: El juez toma conocimiento de oficio de la citación y la acusación formal. Determino que las bases fácticas son suficientes y que la declaración es con conocimiento, inteligencia y voluntaria.\nJUDGE: La declaro culpable de no tener licencia de operador válida. El cargo de exceso de velocidad se desestima. Se le impone una multa de cien dólares, más costas judiciales.\nJUDGE: ¿Puede pagar la multa y las costas hoy?\nDEFENDANT_2: No, Su Señoría. Puedo pagar una parte, pero necesito tiempo para pagar todo.\nJUDGE: Está bien. Le permitiré tiempo para pagar. Tome asiento en el pasillo, y cuando el actuario llame su nombre, pida un plan de pago o tiempo adicional.\nDEFENDANT_2: Gracias, Su Señoría.\nJUDGE: En la causa de La Fiscalía del Estado de Nebraska contra Carlos Ibarra, número de causa CR 26-5803. Señor Ibarra, por favor pase al frente.\nDEFENDANT_3: Sí, aquí estoy.\nJUDGE: ¿Escuchó y entendió los derechos anunciados anteriormente?\nDEFENDANT_3: Sí, pero estoy nervioso.\nJUDGE: Eso es comprensible. Iré despacio. Se le imputa conducir durante un período de suspensión.\nJUDGE: Ese cargo es sancionable con hasta noventa días en la cárcel, una multa de hasta quinientos dólares, o ambas cosas. También puede afectar sus privilegios de conducir.\nJUDGE: ¿Entiende las posibles sanciones?\nDEFENDANT_3: Sí. Yo pensé que ya podía manejar porque pagué unas multas viejas.\nJUDGE: Hoy es la instrucción de cargos. No puedo escuchar su defensa hoy. Debido a que la cárcel es una posible sanción, tengo que preguntarle si puede pagar un abogado.\nJUDGE: ¿Puede pagar un abogado?\nDEFENDANT_3: No, no puedo. Trabajo por horas y apenas pago la renta.\nJUDGE: ¿Quiere que se le nombre al defensor público para que lo represente?\nDEFENDANT_3: Sí, por favor.\nJUDGE: Se nombra al defensor público. Hoy voy a registrar una declaración de no culpable en su nombre para que tenga tiempo de hablar con su abogado.\nPUBLIC DEFENDER: Su Señoría, la Oficina del Defensor Público acepta el nombramiento para fines de la instrucción de cargos y solicita que la causa se fije para audiencia previa al juicio.\nJUDGE: La causa se fijará para una audiencia previa al juicio. Señor Ibarra, tome asiento en el pasillo. El personal le dará la próxima fecha de audiencia y la información sobre cómo comunicarse con el defensor público.\nDEFENDANT_3: ¿Tengo que pagar algo hoy?\nJUDGE: No se impone ninguna multa hoy. Debe regresar en la próxima fecha de audiencia y mantenerse en contacto con su abogado.\nDEFENDANT_3: Está bien. Gracias.\nJUDGE: En la causa de La Fiscalía del Estado de Nebraska contra Ana Perez, número de causa TR 26-5804. Señorita Perez, por favor pase al frente con su madre.\nDEFENDANT_4: Sí, Su Señoría.\nJUDGE: Señorita Perez, ¿cuántos años tiene?\nDEFENDANT_4: Tengo diecisiete años.\nJUDGE: Señora, ¿usted es la madre de Ana?\nPARENT: Sí, soy su mamá, Patricia Perez.\nJUDGE: ¿Ambas escucharon y entendieron los derechos anunciados anteriormente?\nDEFENDANT_4: Sí, entiendo.\nPARENT: Sí, yo también entendí.\nJUDGE: Señorita Perez, se le imputa incumplir los términos de un permiso provisional de operador y no usar el cinturón de seguridad. Ambos cargos son sancionables con multas.\nJUDGE: ¿Entiende las posibles consecuencias?\nDEFENDANT_4: Sí. Era tarde y llevaba a mi prima, pero no sabía que eso era un problema con mi permiso.\nJUDGE: Entiendo que quizá quiera explicar, pero esta es la instrucción de cargos. Si quiere impugnar el cargo, puedo registrar una declaración de no culpable y fijar la causa para juicio.\nPROSECUTOR: Su Señoría, la fiscalía ofrece una declaración al incumplimiento del permiso provisional con una multa de setenta y cinco dólares y desestimaría el cargo de cinturón de seguridad.\nJUDGE: Señorita Perez, ¿entiende la oferta?\nDEFENDANT_4: Creo que sí, pero quiero hablar con mi mamá primero.\nJUDGE: Está bien. Tome un momento para hablar con ella. Esperaré.\nPARENT: Mija, si aceptas, paga la multa y aprende. Pero si crees que no hiciste nada, pide juicio.\nDEFENDANT_4: No quiero faltar a la escuela para un juicio. Voy a aceptar.\nJUDGE: Señorita Perez, ¿ha decidido qué quiere hacer?\nDEFENDANT_4: Sí, quiero aceptar la oferta.\nJUDGE: ¿Cómo se declara ante el cargo de incumplir los términos de un permiso provisional de operador: culpable, no culpable o no me opongo?\nDEFENDANT_4: No me opongo.\nJUDGE: ¿Alguien la ha obligado o amenazado para que presente esa declaración?\nDEFENDANT_4: No.\nJUDGE: ¿Entiende que una declaración de no me opongo tiene el mismo efecto que una declaración de culpable para los fines de hoy?\nDEFENDANT_4: Sí.\nPROSECUTOR: Las bases fácticas son la citación. El 14 de marzo, en el Condado de Douglas, la acusada conducía con un permiso provisional fuera de las condiciones permitidas y recibió una citación por incumplimiento de cinturón de seguridad.\nJUDGE: El juez toma conocimiento de oficio de la citación. Determino que existen bases fácticas y que la declaración se presentó con conocimiento, inteligencia y voluntariamente.\nJUDGE: Se le declara culpable del incumplimiento del permiso provisional. El cargo de cinturón de seguridad se desestima. La multa es de setenta y cinco dólares, más costas judiciales.\nPARENT: ¿Puedo pagar yo por ella hoy?\nJUDGE: Sí. Por favor tomen asiento en el pasillo, y el actuario llamará sus nombres para darles instrucciones de pago.\nJUDGE: En la causa de La Fiscalía del Estado de Nebraska contra Hector Ramirez, número de causa CR 26-5805. Señor Ramirez, por favor pase al frente.\nDEFENDANT_5: Estoy aquí, Su Señoría.\nJUDGE: ¿Escuchó y entendió los derechos anunciados anteriormente?\nDEFENDANT_5: Sí, los escuché, pero no entiendo bien qué va a pasar.\nJUDGE: Le explicaré. Se le imputa abandonar el lugar de un accidente con daños a la propiedad.\nJUDGE: Ese cargo es sancionable con hasta seis meses en la cárcel, una multa de hasta mil dólares, o ambas cosas. El juez también puede revocar o incautar su licencia por hasta un año.\nJUDGE: También se le imputa dar marcha atrás de manera indebida y chocar contra un objeto fijo, ambos derivados del mismo incidente.\nJUDGE: ¿Entiende esas posibles consecuencias?\nDEFENDANT_5: Sí, pero yo no sabía que tenía que quedarme. Dejé mi número con el dueño del carro.\nJUDGE: No puedo decidir los hechos hoy. También veo que puede haber un asunto de resarcimiento por los daños a la propiedad.\nJUDGE: Debido a que la cárcel es una posible sanción, ¿puede pagar un abogado?\nDEFENDANT_5: No. Necesito un abogado, pero no puedo pagarlo.\nJUDGE: Se nombra al defensor público para representarlo. Hoy voy a registrar declaraciones de no culpable en todos los cargos para que tenga tiempo de reunirse con su abogado.\nPUBLIC DEFENDER: Su Señoría, aceptamos el nombramiento y solicitamos una fecha para audiencia previa al juicio. Necesitaremos el informe policial y cualquier documentación de resarcimiento.\nJUDGE: La causa se continuará para audiencia previa al juicio. Se ordena a la fiscalía proporcionar el descubrimiento de prueba, incluida la información de resarcimiento si está disponible.\nJUDGE: Señor Ramirez, tome asiento en el pasillo. El personal le dará su próxima fecha de audiencia y la información de contacto del defensor público antes de que se vaya.\nDEFENDANT_5: ¿Tengo que llamar al defensor o ellos me llaman a mí?\nJUDGE: Usted debe llamarlos. Mantenga actualizados su dirección y número de teléfono. Si falta a la próxima fecha de audiencia, se puede emitir una orden de arresto.\nDEFENDANT_5: Sí, entiendo. Gracias.\nJUDGE: Con esto concluyen los asuntos con interpretación al español que actualmente están listos para la lista de audiencias de instrucción de cargos de tránsito. Gracias.",
+  "paired_segments": [
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "opening_statement",
+      "speaker": "BAILIFF",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "All rise. Douglas County Court is now in session, the Honorable Daniel Harper presiding.",
+      "spanish": "Todos de pie. Se abre la sesión del Tribunal del Condado de Douglas, presidida por el Honorable Daniel Harper."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "opening_statement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Good morning. Please be seated. This is the traffic arraignment calendar for Douglas County Court in Omaha, Nebraska.",
+      "spanish": "Buenos días. Pueden sentarse. Esta es la lista de audiencias de instrucción de cargos de tránsito del Tribunal del Condado de Douglas en Omaha, Nebraska."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "interpreter_intro",
+      "speaker": "INTERPRETER",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "For the record, the Spanish interpreter is present and will interpret everything said in English into Spanish and everything said in Spanish into English.",
+      "spanish": "Para que conste en actas, el intérprete de español está presente e interpretará todo lo que se diga en inglés al español y todo lo que se diga en español al inglés."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Before I call individual cases, I am going to advise everyone of their rights. Please listen carefully, because I will ask each of you whether you heard and understood these rights when you come forward.",
+      "spanish": "Antes de llamar las causas individuales, voy a informarles a todos sobre sus derechos. Por favor escuchen con atención, porque le preguntaré a cada uno si escuchó y entendió estos derechos cuando pase al frente."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You have the right to an attorney. If you cannot afford an attorney and jail is a possible penalty, an attorney may be appointed to represent you at public expense.",
+      "spanish": "Tiene derecho a un abogado. Si no puede pagar un abogado y la cárcel es una posible sanción, se le puede nombrar un abogado para que lo represente a expensas del erario público."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You have the right to a trial, and in some cases you may have the right to a jury trial.",
+      "spanish": "Tiene derecho a un juicio, y en algunas causas puede tener derecho a un juicio por jurado."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "At trial, the State would have to prove the charge against you beyond a reasonable doubt. You are presumed innocent unless and until the State proves you guilty.",
+      "spanish": "En el juicio, la fiscalía tendría que probar el cargo en su contra más allá de toda duda razonable. Se presume que usted es inocente a menos que, y hasta que, la fiscalía pruebe su culpabilidad."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You have the right to confront and cross-examine witnesses called against you.",
+      "spanish": "Tiene derecho a confrontar y contra-interrogar a los testigos llamados en su contra."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You have the right to use the court’s subpoena power to require witnesses to come to court on your behalf.",
+      "spanish": "Tiene derecho a usar la facultad del tribunal de citar judicialmente para exigir que los testigos comparezcan al tribunal a su favor."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You have the right to remain silent. Your silence cannot be used against you.",
+      "spanish": "Tiene derecho a guardar silencio. Su silencio no se puede usar en su contra."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "If you are not a United States citizen, a conviction may have immigration consequences, including removal from the United States or denial of naturalization under federal law.",
+      "spanish": "Si usted no es ciudadano de los Estados Unidos, una condena puede tener consecuencias migratorias, incluso la deportación de los Estados Unidos o la negación de naturalización conforme a la ley federal."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "If you enter a plea of guilty or no contest today, you will give up the trial rights I just described, except that you keep your right to an attorney and your right to appeal.",
+      "spanish": "Si hoy presenta una declaración de culpable o de no me opongo, renunciará a los derechos de juicio que acabo de describir, excepto que conserva su derecho a un abogado y su derecho a apelar."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "rights_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "If the State gives me a factual basis and I accept your plea, I may find you guilty and sentence you today.",
+      "spanish": "Si la fiscalía me proporciona las bases fácticas y yo acepto su declaración, puedo declararlo culpable e imponerle la condena hoy."
+    },
+    {
+      "case_part": "group_rights_advisement",
+      "segment_type": "transition",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "I will call each case one at a time. When your name is called, please come forward with the interpreter.",
+      "spanish": "Llamaré cada causa una por una. Cuando se llame su nombre, por favor pase al frente con el intérprete."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "case_call",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Calling State of Nebraska versus Luis Mendoza, case number CR 26-5801. Mr. Mendoza, please step forward.",
+      "spanish": "En la causa de La Fiscalía del Estado de Nebraska contra Luis Mendoza, número de causa CR 26-5801. Señor Mendoza, por favor pase al frente."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I am here, Your Honor.",
+      "spanish": "Sí, aquí estoy, Su Señoría."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Mr. Mendoza, did you hear the rights I announced earlier in the call?",
+      "spanish": "Señor Mendoza, ¿escuchó los derechos que anuncié antes en esta sesión?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I heard them.",
+      "spanish": "Sí, los escuché."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Did you understand those rights?",
+      "spanish": "¿Entendió esos derechos?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understand.",
+      "spanish": "Sí, entiendo."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You are charged with failing to show proof of liability insurance, punishable by a fine of up to five hundred dollars.",
+      "spanish": "Se le imputa no poder mostrar comprobante de seguro de responsabilidad civil, sancionable con una multa de hasta quinientos dólares."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You are also charged with not having valid vehicle registration, punishable by up to ninety days in jail, a fine of up to five hundred dollars, or both.",
+      "spanish": "También se le imputa no tener matrícula de circulación válida, sancionable con hasta noventa días en la cárcel, una multa de hasta quinientos dólares, o ambas cosas."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand the possible penalties?",
+      "spanish": "¿Entiende las posibles sanciones?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, but I already fixed the registration and I have insurance now.",
+      "spanish": "Sí, pero ya arreglé la matrícula y tengo seguro ahora."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "plea_offer",
+      "speaker": "PROSECUTOR",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Your Honor, if the defendant pleads guilty to the insurance count, the State would dismiss the registration count and recommend a seventy-five dollar fine.",
+      "spanish": "Su Señoría, si el acusado se declara culpable del cargo de seguro, la fiscalía desestimaría el cargo de matrícula de circulación y recomendaría una multa de setenta y cinco dólares."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Mr. Mendoza, do you understand the State’s offer?",
+      "spanish": "Señor Mendoza, ¿entiende la oferta de la fiscalía?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes. If I accept, the registration charge goes away and I pay the insurance fine.",
+      "spanish": "Sí. Si acepto, se quita el cargo de la matrícula y pago la multa del seguro."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Is that something you wish to accept?",
+      "spanish": "¿Eso es algo que desea aceptar?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I want to accept that.",
+      "spanish": "Sí, quiero aceptar eso."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "plea_question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "How do you plead to the charge of failing to show proof of liability insurance: guilty, not guilty, or no contest?",
+      "spanish": "¿Cómo se declara ante el cargo de no poder mostrar comprobante de seguro de responsabilidad civil: culpable, no culpable o no me opongo?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "plea",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Guilty.",
+      "spanish": "Culpable."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Has anyone forced or threatened you to enter that guilty plea?",
+      "spanish": "¿Alguien lo ha obligado o amenazado para que presente esa declaración de culpable?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No.",
+      "spanish": "No."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand that by entering that plea, you are giving up the trial rights I described earlier?",
+      "spanish": "¿Entiende que al presentar esa declaración, renuncia a los derechos de juicio que describí anteriormente?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understand.",
+      "spanish": "Sí, entiendo."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "factual_basis",
+      "speaker": "PROSECUTOR",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The State would provide a factual basis from the citation and officer’s sworn complaint. On March 8th, in Douglas County, the defendant was stopped near 24th and L Street and could not provide proof of liability insurance.",
+      "spanish": "La fiscalía proporcionaría las bases fácticas con base en la citación y la acusación formal jurada del agente. El 8 de marzo, en el Condado de Douglas, el acusado fue detenido cerca de la calle 24 y L y no pudo presentar comprobante de seguro de responsabilidad civil."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "finding",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The Court takes judicial notice of the citation and complaint. I find a factual basis exists and that the plea is entered knowingly, intelligently, and voluntarily.",
+      "spanish": "El juez toma conocimiento de oficio de la citación y de la acusación formal. Determino que existen bases fácticas y que la declaración se presenta con conocimiento, inteligencia y voluntariamente."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "finding",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "I adjudge the defendant guilty of failing to show proof of liability insurance. Count Two, no valid registration, is dismissed pursuant to the agreement.",
+      "spanish": "Declaro al acusado culpable de no poder mostrar comprobante de seguro de responsabilidad civil. El Cargo Dos, no tener matrícula de circulación válida, se desestima conforme al acuerdo."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "sentence",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "On Count One, I will follow the recommendation. You are fined seventy-five dollars, plus court costs.",
+      "spanish": "En cuanto al Cargo Uno, seguiré la recomendación. Se le impone una multa de setenta y cinco dólares, más costas judiciales."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Are you able to pay that today?",
+      "spanish": "¿Puede pagar eso hoy?"
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_1",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I can pay it today.",
+      "spanish": "Sí, puedo pagarlo hoy."
+    },
+    {
+      "case_part": "case_1_no_proof_insurance_registration",
+      "segment_type": "closing_statement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Please have a seat in the hallway. The clerk will call your name and take you to the payment window.",
+      "spanish": "Por favor tome asiento en el pasillo. El actuario llamará su nombre y lo llevará a la ventanilla de pago."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "case_call",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Calling State of Nebraska versus Rosa Delgado, case number CR 26-5802. Ms. Delgado, please step forward.",
+      "spanish": "En la causa de La Fiscalía del Estado de Nebraska contra Rosa Delgado, número de causa CR 26-5802. Señora Delgado, por favor pase al frente."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Good morning.",
+      "spanish": "Buenos días."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ms. Delgado, did you hear and understand the rights I announced earlier?",
+      "spanish": "Señora Delgado, ¿escuchó y entendió los derechos que anuncié anteriormente?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understood them.",
+      "spanish": "Sí, los entendí."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You are charged with no valid operator’s license, punishable by up to ninety days in jail, a fine of up to five hundred dollars, or both.",
+      "spanish": "Se le imputa no tener licencia de conducir válida, sancionable con hasta noventa días en la cárcel, una multa de hasta quinientos dólares, o ambas cosas."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You are also charged with speeding, eleven to fifteen miles per hour over the posted limit, punishable by a fine.",
+      "spanish": "También se le imputa exceso de velocidad, de once a quince millas por hora por encima del límite indicado, sancionable con una multa."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand those possible penalties?",
+      "spanish": "¿Entiende esas posibles sanciones?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes. I had a license from Mexico, but I did not have one from Nebraska.",
+      "spanish": "Sí. Yo tenía licencia de México, pero no tenía una de Nebraska."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "plea_offer",
+      "speaker": "PROSECUTOR",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Your Honor, the State would offer to dismiss the speeding count if the defendant pleads guilty to no valid operator’s license. The recommendation would be a one hundred dollar fine.",
+      "spanish": "Su Señoría, la fiscalía ofrece desestimar el cargo de exceso de velocidad si la acusada se declara culpable de no tener licencia de operador válida. La recomendación sería una multa de cien dólares."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ms. Delgado, do you understand the offer?",
+      "spanish": "Señora Delgado, ¿entiende la oferta?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understand that I plead guilty to the license and the speeding is dismissed.",
+      "spanish": "Sí, entiendo que me declaro culpable de la licencia y se desestima la velocidad."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you wish to accept that offer?",
+      "spanish": "¿Desea aceptar esa oferta?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I accept it.",
+      "spanish": "Sí, la acepto."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "plea_question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "How do you plead to no valid operator’s license: guilty, not guilty, or no contest?",
+      "spanish": "¿Cómo se declara ante el cargo de no tener licencia de operador válida: culpable, no culpable o no me opongo?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "plea",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Guilty.",
+      "spanish": "Culpable."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Is anyone forcing or threatening you to plead guilty?",
+      "spanish": "¿Alguien la está obligando o amenazando para que se declare culpable?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No, no one.",
+      "spanish": "No, nadie."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand that you are giving up the trial rights I explained earlier?",
+      "spanish": "¿Entiende que está renunciando a los derechos de juicio que expliqué anteriormente?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understand.",
+      "spanish": "Sí, entiendo."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "factual_basis",
+      "speaker": "PROSECUTOR",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The factual basis is the officer’s citation and sworn complaint. On February 26th, in Douglas County, the defendant was stopped for driving forty-seven miles per hour in a thirty-five mile-per-hour zone and did not have a valid Nebraska operator’s license.",
+      "spanish": "Las bases fácticas son la citación y la acusación formal jurada del agente. El 26 de febrero, en el Condado de Douglas, la acusada fue detenida por conducir a cuarenta y siete millas por hora en una zona de treinta y cinco millas por hora y no tenía una licencia de operador válida de Nebraska."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "finding",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The Court takes judicial notice of the citation and complaint. I find the factual basis is sufficient and the plea is knowing, intelligent, and voluntary.",
+      "spanish": "El juez toma conocimiento de oficio de la citación y la acusación formal. Determino que las bases fácticas son suficientes y que la declaración es con conocimiento, inteligencia y voluntaria."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "sentence",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "I find you guilty of no valid operator’s license. The speeding count is dismissed. You are fined one hundred dollars, plus court costs.",
+      "spanish": "La declaro culpable de no tener licencia de operador válida. El cargo de exceso de velocidad se desestima. Se le impone una multa de cien dólares, más costas judiciales."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Are you able to pay the fine and costs today?",
+      "spanish": "¿Puede pagar la multa y las costas hoy?"
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No, Your Honor. I can pay part of it, but I need time to pay everything.",
+      "spanish": "No, Su Señoría. Puedo pagar una parte, pero necesito tiempo para pagar todo."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "That is fine. I will allow time to pay. Have a seat in the hallway, and when the clerk calls your name, ask for a payment plan or additional time.",
+      "spanish": "Está bien. Le permitiré tiempo para pagar. Tome asiento en el pasillo, y cuando el actuario llame su nombre, pida un plan de pago o tiempo adicional."
+    },
+    {
+      "case_part": "case_2_no_valid_license_speeding_time_to_pay",
+      "segment_type": "closing_statement",
+      "speaker": "DEFENDANT_2",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Thank you, Your Honor.",
+      "spanish": "Gracias, Su Señoría."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "case_call",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Calling State of Nebraska versus Carlos Ibarra, case number CR 26-5803. Mr. Ibarra, please come forward.",
+      "spanish": "En la causa de La Fiscalía del Estado de Nebraska contra Carlos Ibarra, número de causa CR 26-5803. Señor Ibarra, por favor pase al frente."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I am here.",
+      "spanish": "Sí, aquí estoy."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Did you hear and understand the rights announced earlier?",
+      "spanish": "¿Escuchó y entendió los derechos anunciados anteriormente?"
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, but I am nervous.",
+      "spanish": "Sí, pero estoy nervioso."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "That is understandable. I will go slowly. You are charged with driving during a period of suspension.",
+      "spanish": "Eso es comprensible. Iré despacio. Se le imputa conducir durante un período de suspensión."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "That charge is punishable by up to ninety days in jail, a fine of up to five hundred dollars, or both. It may also affect your driving privileges.",
+      "spanish": "Ese cargo es sancionable con hasta noventa días en la cárcel, una multa de hasta quinientos dólares, o ambas cosas. También puede afectar sus privilegios de conducir."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand the possible penalties?",
+      "spanish": "¿Entiende las posibles sanciones?"
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes. I thought I could drive again because I paid some old fines.",
+      "spanish": "Sí. Yo pensé que ya podía manejar porque pagué unas multas viejas."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Today is the arraignment. I cannot hear your defense today. Because jail is a possible penalty, I need to ask whether you can afford to hire an attorney.",
+      "spanish": "Hoy es la instrucción de cargos. No puedo escuchar su defensa hoy. Debido a que la cárcel es una posible sanción, tengo que preguntarle si puede pagar un abogado."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Can you afford to hire an attorney?",
+      "spanish": "¿Puede pagar un abogado?"
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No, I cannot. I work by the hour and I barely pay rent.",
+      "spanish": "No, no puedo. Trabajo por horas y apenas pago la renta."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you want the public defender appointed to represent you?",
+      "spanish": "¿Quiere que se le nombre al defensor público para que lo represente?"
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, please.",
+      "spanish": "Sí, por favor."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "appointment",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The public defender is appointed. I am entering a plea of not guilty on your behalf today so you have time to speak with your attorney.",
+      "spanish": "Se nombra al defensor público. Hoy voy a registrar una declaración de no culpable en su nombre para que tenga tiempo de hablar con su abogado."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "appearance",
+      "speaker": "PUBLIC DEFENDER",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Your Honor, the Public Defender’s Office accepts appointment for purposes of arraignment and asks that the matter be set for pretrial conference.",
+      "spanish": "Su Señoría, la Oficina del Defensor Público acepta el nombramiento para fines de la instrucción de cargos y solicita que la causa se fije para audiencia previa al juicio."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "setting",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The matter will be set for a pretrial conference. Mr. Ibarra, have a seat in the hallway. Staff will give you the next court date and information on how to contact the public defender.",
+      "spanish": "La causa se fijará para una audiencia previa al juicio. Señor Ibarra, tome asiento en el pasillo. El personal le dará la próxima fecha de audiencia y la información sobre cómo comunicarse con el defensor público."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "question",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Do I have to pay anything today?",
+      "spanish": "¿Tengo que pagar algo hoy?"
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "No fine is imposed today. You must come back on the next court date and stay in contact with your attorney.",
+      "spanish": "No se impone ninguna multa hoy. Debe regresar en la próxima fecha de audiencia y mantenerse en contacto con su abogado."
+    },
+    {
+      "case_part": "case_3_driving_under_suspension_public_defender",
+      "segment_type": "closing_statement",
+      "speaker": "DEFENDANT_3",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Okay. Thank you.",
+      "spanish": "Está bien. Gracias."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "case_call",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Calling State of Nebraska versus Ana Perez, case number TR 26-5804. Ms. Perez, please come forward with your mother.",
+      "spanish": "En la causa de La Fiscalía del Estado de Nebraska contra Ana Perez, número de causa TR 26-5804. Señorita Perez, por favor pase al frente con su madre."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, Your Honor.",
+      "spanish": "Sí, Su Señoría."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ms. Perez, how old are you?",
+      "spanish": "Señorita Perez, ¿cuántos años tiene?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "I am seventeen years old.",
+      "spanish": "Tengo diecisiete años."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ma’am, are you Ana’s mother?",
+      "spanish": "Señora, ¿usted es la madre de Ana?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "PARENT",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I am her mother, Patricia Perez.",
+      "spanish": "Sí, soy su mamá, Patricia Perez."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Did both of you hear and understand the rights announced earlier?",
+      "spanish": "¿Ambas escucharon y entendieron los derechos anunciados anteriormente?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understand.",
+      "spanish": "Sí, entiendo."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "PARENT",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I also understood.",
+      "spanish": "Sí, yo también entendí."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ms. Perez, you are charged with violating the terms of a provisional operator’s permit and failing to use a seat belt. Both are punishable by fines.",
+      "spanish": "Señorita Perez, se le imputa incumplir los términos de un permiso provisional de operador y no usar el cinturón de seguridad. Ambos cargos son sancionables con multas."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand the possible consequences?",
+      "spanish": "¿Entiende las posibles consecuencias?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes. It was late and I was driving my cousin, but I did not know that was a problem with my permit.",
+      "spanish": "Sí. Era tarde y llevaba a mi prima, pero no sabía que eso era un problema con mi permiso."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "I understand that you may want to explain, but this is the arraignment. If you want to contest the charge, I can enter a not guilty plea and set the matter for trial.",
+      "spanish": "Entiendo que quizá quiera explicar, pero esta es la instrucción de cargos. Si quiere impugnar el cargo, puedo registrar una declaración de no culpable y fijar la causa para juicio."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "plea_offer",
+      "speaker": "PROSECUTOR",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Your Honor, the State would offer a plea to the provisional permit violation with a seventy-five dollar fine and would dismiss the seat belt count.",
+      "spanish": "Su Señoría, la fiscalía ofrece una declaración al incumplimiento del permiso provisional con una multa de setenta y cinco dólares y desestimaría el cargo de cinturón de seguridad."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ms. Perez, do you understand the offer?",
+      "spanish": "Señorita Perez, ¿entiende la oferta?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "I think so, but I want to talk to my mom first.",
+      "spanish": "Creo que sí, pero quiero hablar con mi mamá primero."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "That is fine. Take a moment to speak with her. I will wait.",
+      "spanish": "Está bien. Tome un momento para hablar con ella. Esperaré."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "aside",
+      "speaker": "PARENT",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Honey, if you accept, pay the fine and learn from it. But if you think you did not do anything, ask for a trial.",
+      "spanish": "Mija, si aceptas, paga la multa y aprende. Pero si crees que no hiciste nada, pide juicio."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "aside",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "I do not want to miss school for a trial. I am going to accept.",
+      "spanish": "No quiero faltar a la escuela para un juicio. Voy a aceptar."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Ms. Perez, have you decided what you want to do?",
+      "spanish": "Señorita Perez, ¿ha decidido qué quiere hacer?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I want to accept the offer.",
+      "spanish": "Sí, quiero aceptar la oferta."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "plea_question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "How do you plead to violating the terms of a provisional operator’s permit: guilty, not guilty, or no contest?",
+      "spanish": "¿Cómo se declara ante el cargo de incumplir los términos de un permiso provisional de operador: culpable, no culpable o no me opongo?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "plea",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No contest.",
+      "spanish": "No me opongo."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Has anyone forced or threatened you to enter that plea?",
+      "spanish": "¿Alguien la ha obligado o amenazado para que presente esa declaración?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No.",
+      "spanish": "No."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand that a no contest plea has the same effect as a guilty plea for today’s purposes?",
+      "spanish": "¿Entiende que una declaración de no me opongo tiene el mismo efecto que una declaración de culpable para los fines de hoy?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_4",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes.",
+      "spanish": "Sí."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "factual_basis",
+      "speaker": "PROSECUTOR",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The factual basis is the citation. On March 14th, in Douglas County, the defendant was operating under a provisional permit outside the permitted conditions and was cited for a seat belt violation.",
+      "spanish": "Las bases fácticas son la citación. El 14 de marzo, en el Condado de Douglas, la acusada conducía con un permiso provisional fuera de las condiciones permitidas y recibió una citación por incumplimiento de cinturón de seguridad."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "finding",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The Court takes judicial notice of the citation. I find a factual basis and find the plea was entered knowingly, intelligently, and voluntarily.",
+      "spanish": "El juez toma conocimiento de oficio de la citación. Determino que existen bases fácticas y que la declaración se presentó con conocimiento, inteligencia y voluntariamente."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "sentence",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You are found guilty of the provisional permit violation. The seat belt count is dismissed. The fine is seventy-five dollars, plus court costs.",
+      "spanish": "Se le declara culpable del incumplimiento del permiso provisional. El cargo de cinturón de seguridad se desestima. La multa es de setenta y cinco dólares, más costas judiciales."
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "question",
+      "speaker": "PARENT",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Can I pay for her today?",
+      "spanish": "¿Puedo pagar yo por ella hoy?"
+    },
+    {
+      "case_part": "case_4_provisional_permit_seat_belt_parent_involved",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Yes. Please have a seat in the hallway, and the clerk will call your names for payment instructions.",
+      "spanish": "Sí. Por favor tomen asiento en el pasillo, y el actuario llamará sus nombres para darles instrucciones de pago."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "case_call",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Calling State of Nebraska versus Hector Ramirez, case number CR 26-5805. Mr. Ramirez, please step forward.",
+      "spanish": "En la causa de La Fiscalía del Estado de Nebraska contra Hector Ramirez, número de causa CR 26-5805. Señor Ramirez, por favor pase al frente."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_5",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "I am here, Your Honor.",
+      "spanish": "Estoy aquí, Su Señoría."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Did you hear and understand the rights announced earlier?",
+      "spanish": "¿Escuchó y entendió los derechos anunciados anteriormente?"
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_5",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I heard them, but I do not understand very well what is going to happen.",
+      "spanish": "Sí, los escuché, pero no entiendo bien qué va a pasar."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "I will explain. You are charged with leaving the scene of a property-damage accident.",
+      "spanish": "Le explicaré. Se le imputa abandonar el lugar de un accidente con daños a la propiedad."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "That charge is punishable by up to six months in jail, a fine of up to one thousand dollars, or both. The court may also revoke or impound your license for up to one year.",
+      "spanish": "Ese cargo es sancionable con hasta seis meses en la cárcel, una multa de hasta mil dólares, o ambas cosas. El juez también puede revocar o incautar su licencia por hasta un año."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "charge_advisement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You are also charged with improper backing and striking a fixed object, both arising from the same incident.",
+      "spanish": "También se le imputa dar marcha atrás de manera indebida y chocar contra un objeto fijo, ambos derivados del mismo incidente."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Do you understand those possible consequences?",
+      "spanish": "¿Entiende esas posibles consecuencias?"
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_5",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, but I did not know I had to stay. I left my number with the owner of the car.",
+      "spanish": "Sí, pero yo no sabía que tenía que quedarme. Dejé mi número con el dueño del carro."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "I cannot decide the facts today. I also see there may be a restitution issue for the property damage.",
+      "spanish": "No puedo decidir los hechos hoy. También veo que puede haber un asunto de resarcimiento por los daños a la propiedad."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "question",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Because jail is a possible penalty, can you afford to hire an attorney?",
+      "spanish": "Debido a que la cárcel es una posible sanción, ¿puede pagar un abogado?"
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "DEFENDANT_5",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "No. I need an attorney, but I cannot pay for one.",
+      "spanish": "No. Necesito un abogado, pero no puedo pagarlo."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "appointment",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The public defender is appointed to represent you. I am entering not guilty pleas on all counts today so you have time to meet with counsel.",
+      "spanish": "Se nombra al defensor público para representarlo. Hoy voy a registrar declaraciones de no culpable en todos los cargos para que tenga tiempo de reunirse con su abogado."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "appearance",
+      "speaker": "PUBLIC DEFENDER",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Your Honor, we accept appointment and ask for a pretrial conference date. We will need the police report and any restitution documentation.",
+      "spanish": "Su Señoría, aceptamos el nombramiento y solicitamos una fecha para audiencia previa al juicio. Necesitaremos el informe policial y cualquier documentación de resarcimiento."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "setting",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "The matter will be continued for pretrial conference. The State is ordered to provide discovery, including restitution information if available.",
+      "spanish": "La causa se continuará para audiencia previa al juicio. Se ordena a la fiscalía proporcionar el descubrimiento de prueba, incluida la información de resarcimiento si está disponible."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "instruction",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "Mr. Ramirez, have a seat in the hallway. Staff will give you your next court date and public defender contact information before you leave.",
+      "spanish": "Señor Ramirez, tome asiento en el pasillo. El personal le dará su próxima fecha de audiencia y la información de contacto del defensor público antes de que se vaya."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "question",
+      "speaker": "DEFENDANT_5",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Do I have to call the defender, or will they call me?",
+      "spanish": "¿Tengo que llamar al defensor o ellos me llaman a mí?"
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "answer",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "You should call them. Keep your address and phone number updated. If you miss the next court date, a warrant may issue.",
+      "spanish": "Usted debe llamarlos. Mantenga actualizados su dirección y número de teléfono. Si falta a la próxima fecha de audiencia, se puede emitir una orden de arresto."
+    },
+    {
+      "case_part": "case_5_leaving_scene_property_damage_restitution_counsel",
+      "segment_type": "closing_statement",
+      "speaker": "DEFENDANT_5",
+      "source_language": "spanish",
+      "playback_order": [
+        "spanish",
+        "english"
+      ],
+      "english": "Yes, I understand. Thank you.",
+      "spanish": "Sí, entiendo. Gracias."
+    },
+    {
+      "case_part": "calendar_closing",
+      "segment_type": "closing_statement",
+      "speaker": "JUDGE",
+      "source_language": "english",
+      "playback_order": [
+        "english",
+        "spanish"
+      ],
+      "english": "That concludes the Spanish-interpreted matters currently ready for the traffic arraignment calendar. Thank you.",
+      "spanish": "Con esto concluyen los asuntos con interpretación al español que actualmente están listos para la lista de audiencias de instrucción de cargos de tránsito. Gracias."
+    }
+  ],
+  "training_notes": [
+    "This is a realistic training script, not a transcript of an actual case.",
+    "The group rights advisement appears only once, followed by five individual arraignments.",
+    "Defendant and parent responses are Spanish-source and should play Spanish first, then English interpretation.",
+    "Judge, prosecutor, public defender, bailiff, clerk, and interpreter-introduction lines are English-source and should play English first, then Spanish interpretation.",
+    "Terminology follows the user’s preferred legal terminology and the uploaded style guide where applicable.",
+    "The charge penalties and offers are training approximations based on realistic courtroom flow and should be reviewed before any legal-information use.",
+    "Voice compatibility update: all audio_profile voices now come from the approved local Edge TTS voice pool; unavailable voices such as en-US-AshleyNeural, en-US-NancyNeural, en-US-TonyNeural, en-US-JaneNeural, and en-US-DavisNeural are avoided."
+  ]
+}

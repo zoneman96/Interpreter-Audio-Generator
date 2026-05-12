@@ -1,6 +1,6 @@
-streamlit
-edge-tts
-python-docx
-reportlab
-pandas
-openpyxl
+streamlit>=1.35
+edge-tts>=6.1
+pandas>=2.0
+python-docx>=1.1
+reportlab>=4.0
+openpyxl>=3.1
