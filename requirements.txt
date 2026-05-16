@@ -1,2 +1,5 @@
 streamlit>=1.35
 edge-tts>=6.1
+pandas>=2.0
+openai>=1.0
+python-docx>=1.1
