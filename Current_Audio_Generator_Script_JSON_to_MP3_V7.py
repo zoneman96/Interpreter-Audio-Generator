@@ -143,6 +143,25 @@ CONSECUTIVE_MIN_PAUSE = 3.0
 CONSECUTIVE_MAX_PAUSE = 14.0
 CONSECUTIVE_SEGMENT_GAP = 1.8
 
+# Source-only practice mode (separate optional output)
+# Output pattern: <script_id>_source_only.mp3
+# Plays only the original/source side of each paired segment while preserving
+# JSON speaker voice assignments. Intended for real-time interpreting practice
+# without the included translation/correction.
+GENERATE_SOURCE_ONLY_AUDIO = True
+# If True, adjacent source-language JSON segments with the same speaker, same
+# source language, and same assigned TTS voice are combined into one TTS request
+# for more natural source-only practice audio. This avoids artificial pauses caused
+# only by JSON chunking while still preserving pauses when the speaker changes.
+SOURCE_ONLY_MERGE_ADJACENT_SAME_SPEAKER = True
+# Safety limit for a merged same-speaker TTS block. If a long monologue exceeds
+# this size, the generator starts a new same-speaker block and uses the
+# continuation gap below.
+SOURCE_ONLY_MAX_MERGED_CHARS = 2800
+SOURCE_ONLY_SEGMENT_GAP = 0.75
+SOURCE_ONLY_SPEAKER_CHANGE_GAP = 1.35
+SOURCE_ONLY_MERGED_CONTINUATION_GAP = 0.18
+
 # Retry transient Edge TTS failures
 TTS_MAX_RETRIES = 5
 TTS_RETRY_BASE_SECONDS = 2.0
@@ -903,6 +922,80 @@ def build_segment_items(data: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+
+def get_source_language_for_segment(segment: dict[str, Any]) -> str:
+    """Return the language that should be played in source-only practice audio."""
+    source_language = str(
+        segment.get("source_language")
+        or segment.get("original_language")
+        or ""
+    ).strip().lower()
+    if source_language in {"english", "spanish"}:
+        return source_language
+
+    playback_order = _normalize_playback_order(segment.get("playback_order"))
+    if playback_order:
+        return playback_order[0]
+
+    return "english"
+
+
+def get_source_only_rate_for_language(language: str, en_rate: str, es_rate: str) -> str:
+    return es_rate if str(language).lower() == "spanish" else en_rate
+
+
+def build_source_only_groups(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Merge adjacent source-only entries when JSON chunking splits one speaker.
+
+    The source-only export is intended to sound like one natural source-language
+    practice track. Many JSON files split long turns into pedagogical chunks, but
+    those boundaries can create awkward pauses when the same speaker is still
+    talking. This groups only adjacent entries with the same speaker, source
+    language, TTS voice, and rate. Speaker changes and language/voice changes
+    still produce a natural break.
+    """
+    groups: list[dict[str, Any]] = []
+    max_chars = max(200, int(SOURCE_ONLY_MAX_MERGED_CHARS or 2800))
+
+    for entry in entries:
+        text = normalize_space(entry.get("text", ""))
+        if not text:
+            continue
+
+        if not SOURCE_ONLY_MERGE_ADJACENT_SAME_SPEAKER or not groups:
+            new_group = dict(entry)
+            new_group["text"] = text
+            new_group["segments"] = [entry.get("segment_number")]
+            new_group["break_kind"] = "speaker_change" if groups else "start"
+            groups.append(new_group)
+            continue
+
+        prev = groups[-1]
+        same_speaker = normalize_speaker_key(prev.get("speaker", "")) == normalize_speaker_key(entry.get("speaker", ""))
+        same_language = str(prev.get("language", "")).lower() == str(entry.get("language", "")).lower()
+        same_voice = normalize_space(prev.get("voice", "")) == normalize_space(entry.get("voice", ""))
+        same_rate = normalize_space(prev.get("rate", "")) == normalize_space(entry.get("rate", ""))
+        merged_text = normalize_space(str(prev.get("text", "")) + " " + text)
+
+        if same_speaker and same_language and same_voice and same_rate and len(merged_text) <= max_chars:
+            prev["text"] = merged_text
+            prev.setdefault("segments", []).append(entry.get("segment_number"))
+            continue
+
+        new_group = dict(entry)
+        new_group["text"] = text
+        new_group["segments"] = [entry.get("segment_number")]
+        if same_speaker and same_language and same_voice and same_rate:
+            new_group["break_kind"] = "continuation"
+        elif same_speaker:
+            new_group["break_kind"] = "same_speaker"
+        else:
+            new_group["break_kind"] = "speaker_change"
+        groups.append(new_group)
+
+    return groups
+
+
 def build_targeted_segment_items(data: dict[str, Any]) -> list[dict[str, Any]]:
     paired = build_segment_items(data)
     terms_used = data.get("terms_used", []) or []
@@ -1086,6 +1179,7 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
     inline_cues_output_mp3 = OUTPUT_DIR / f"{script_id}_inline_term_cues.mp3"
     full_speed_output_mp3 = OUTPUT_DIR / f"{script_id}_full_speed_increase.mp3"
     consecutive_output_mp3 = OUTPUT_DIR / f"{script_id}_consecutive_mode.mp3"
+    source_only_output_mp3 = OUTPUT_DIR / f"{script_id}_source_only.mp3"
 
     should_force_rebuild_for_profile = FORCE_REBUILD_WHEN_AUDIO_PROFILE_PRESENT and has_audio_profile_or_voice_assignments(data)
 
@@ -1103,6 +1197,8 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
             existing_targets.append(full_speed_output_mp3)
         if GENERATE_CONSECUTIVE_MODE and segment_items:
             existing_targets.append(consecutive_output_mp3)
+        if GENERATE_SOURCE_ONLY_AUDIO and segment_items:
+            existing_targets.append(source_only_output_mp3)
         if SKIP_EXISTING_SCRIPT_MP3S and not should_force_rebuild_for_profile and outputs_are_fresh(script_path, existing_targets):
             print(f"Skipping {script_id}: split audio already exists and is up to date.")
             return existing_targets
@@ -1110,6 +1206,8 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
         existing_targets = [combined_output_mp3]
         if GENERATE_CONSECUTIVE_MODE and segment_items:
             existing_targets.append(consecutive_output_mp3)
+        if GENERATE_SOURCE_ONLY_AUDIO and segment_items:
+            existing_targets.append(source_only_output_mp3)
         if SKIP_EXISTING_SCRIPT_MP3S and not should_force_rebuild_for_profile and outputs_are_fresh(script_path, existing_targets):
             print(f"Skipping {script_id}: existing audio is up to date.")
             return existing_targets
@@ -1144,6 +1242,9 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
         full_speed_short_pause = tmpdir / "pause_full_speed_short.mp3"
         full_speed_segment_gap = tmpdir / "pause_full_speed_segment_gap.mp3"
         consecutive_segment_gap = tmpdir / "pause_consecutive_segment_gap.mp3"
+        source_only_segment_gap = tmpdir / "pause_source_only_segment_gap.mp3"
+        source_only_speaker_change_gap = tmpdir / "pause_source_only_speaker_change_gap.mp3"
+        source_only_merged_continuation_gap = tmpdir / "pause_source_only_merged_continuation_gap.mp3"
 
         make_silence_mp3(flashcard_en_es_pause, FLASHCARD_EN_ES_PAUSE)
         make_silence_mp3(flashcard_alt_pause, FLASHCARD_ALT_PAUSE)
@@ -1165,6 +1266,9 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
         make_silence_mp3(full_speed_short_pause, FULL_SPEED_SHORT_PAUSE)
         make_silence_mp3(full_speed_segment_gap, FULL_SPEED_SEGMENT_GAP)
         make_silence_mp3(consecutive_segment_gap, CONSECUTIVE_SEGMENT_GAP)
+        make_silence_mp3(source_only_segment_gap, SOURCE_ONLY_SEGMENT_GAP)
+        make_silence_mp3(source_only_speaker_change_gap, SOURCE_ONLY_SPEAKER_CHANGE_GAP)
+        make_silence_mp3(source_only_merged_continuation_gap, SOURCE_ONLY_MERGED_CONTINUATION_GAP)
 
         counter = 0
         flashcard_parts: list[Path] = []
@@ -1173,6 +1277,8 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
         inline_cue_parts: list[Path] = []
         full_speed_parts: list[Path] = []
         consecutive_parts: list[Path] = []
+        source_only_parts: list[Path] = []
+        source_only_entries: list[dict[str, Any]] = []
 
         if INCLUDE_FLASHCARDS and terms_used:
             cards = build_flashcard_lines(terms_used)
@@ -1236,6 +1342,38 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
                     consecutive_parts.append(dynamic_pause)
                     consecutive_parts.append(interpreted_file)
                     consecutive_parts.append(consecutive_segment_gap)
+
+            if GENERATE_SOURCE_ONLY_AUDIO:
+                source_lang = get_source_language_for_segment(seg)
+                source_text = text_for_tts(data, seg, source_lang)
+                source_voice = get_voice_for_segment(data, seg, source_lang, ES_VOICE if source_lang == "spanish" else EN_VOICE)
+                source_rate = get_source_only_rate_for_language(source_lang, en_rate, es_rate)
+                if source_text:
+                    source_only_entries.append({
+                        "segment_number": seg.get("segment_number", idx),
+                        "speaker": seg.get("speaker", ""),
+                        "language": source_lang,
+                        "voice": source_voice,
+                        "rate": source_rate,
+                        "text": source_text,
+                    })
+
+        if GENERATE_SOURCE_ONLY_AUDIO and source_only_entries:
+            source_only_groups = build_source_only_groups(source_only_entries)
+            for group_idx, group in enumerate(source_only_groups, start=1):
+                if source_only_parts:
+                    break_kind = group.get("break_kind")
+                    if break_kind == "speaker_change":
+                        source_only_parts.append(source_only_speaker_change_gap)
+                    elif break_kind == "continuation":
+                        source_only_parts.append(source_only_merged_continuation_gap)
+                    else:
+                        source_only_parts.append(source_only_segment_gap)
+
+                group_file = tmpdir / f"{counter:04d}_source_only_group_{group_idx:03d}.mp3"
+                counter += 1
+                await tts_to_mp3(group["text"], group["voice"], group["rate"], group_file)
+                source_only_parts.append(group_file)
 
         if GENERATE_TARGETED_HARD_TERMS:
             for idx, item in enumerate(targeted_items, start=1):
@@ -1410,6 +1548,10 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
                 concat_mp3s(consecutive_parts, consecutive_output_mp3)
                 print(f"Saved consecutive mode drill: {consecutive_output_mp3}")
                 saved_outputs.append(consecutive_output_mp3)
+            if source_only_parts:
+                concat_mp3s(source_only_parts, source_only_output_mp3)
+                print(f"Saved source-only practice audio: {source_only_output_mp3}")
+                saved_outputs.append(source_only_output_mp3)
             return saved_outputs
 
         parts: list[Path] = []
@@ -1429,6 +1571,10 @@ async def build_audio_for_script(script_path: Path) -> list[Path]:
             concat_mp3s(consecutive_parts, consecutive_output_mp3)
             print(f"Saved consecutive mode drill: {consecutive_output_mp3}")
             saved_outputs.append(consecutive_output_mp3)
+        if source_only_parts:
+            concat_mp3s(source_only_parts, source_only_output_mp3)
+            print(f"Saved source-only practice audio: {source_only_output_mp3}")
+            saved_outputs.append(source_only_output_mp3)
 
         if not parts:
             return saved_outputs
