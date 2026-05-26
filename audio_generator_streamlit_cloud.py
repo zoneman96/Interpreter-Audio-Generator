@@ -3,7 +3,7 @@
 Cloud-safe Streamlit dashboard for the Interpreter Audio Generator.
 
 Deploy with Streamlit Community Cloud using this file as the entrypoint, or run locally:
-    streamlit run audio_generator_streamlit_cloud_V2.py
+    streamlit run audio_generator_streamlit_cloud_V3.py
 
 Generated files are session/runtime files. Download ZIP/CSV/JSON outputs if you want to keep them.
 """
@@ -50,9 +50,14 @@ DEFAULT_SIMULTANEOUS_LOG_PATH = DEFAULT_STUDY_PROGRESS_DIR / "simultaneous_pract
 DEFAULT_DRILL_STUDIO_LOG_PATH = DEFAULT_STUDY_PROGRESS_DIR / "drill_studio_log.csv"
 DEFAULT_EXAM_OUTPUT_DIR = RUNTIME_DIR / "exam_output"
 DEFAULT_EXAM_TRANSCRIPT_DIR = DEFAULT_EXAM_OUTPUT_DIR / "transcripts"
+DEFAULT_EXAM_EVALUATION_LOG_PATH = DEFAULT_STUDY_PROGRESS_DIR / "exam_evaluation_log.csv"
 OPENAI_TRANSCRIBE_MODELS = ["whisper-1", "gpt-4o-mini-transcribe", "gpt-4o-transcribe"]
 OPENAI_AI_FEEDBACK_MODELS = ["gpt-5.5", "gpt-5", "gpt-4o-mini", "gpt-4o"]
 OPENAI_TRANSCRIBE_LIMIT_BYTES = 25 * 1024 * 1024
+# Cloud build intentionally excludes local whisper.cpp transcription.
+LOCAL_WHISPER_ENGINES = ["OpenAI API"]
+DEFAULT_WHISPER_CPP_BINARY = Path("")
+DEFAULT_WHISPER_CPP_MODEL = Path("")
 
 for _runtime_path in [RUNTIME_DIR, RUNTIME_OUTPUT_DIR, RUNTIME_CACHE_DIR, DEFAULT_STUDY_PROGRESS_DIR, DEFAULT_EXAM_OUTPUT_DIR, DEFAULT_EXAM_TRANSCRIPT_DIR]:
     try:
@@ -463,6 +468,235 @@ def render_audio_player(
     components.html(component_html, height=76, scrolling=False)
 
 
+_AUTO_RECORDER_COMPONENT = None
+
+
+def _auto_recorder_component_html() -> str:
+    """Return the static HTML/JS for the local consecutive auto-recorder component."""
+    return r"""
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: transparent; color: #111827; }
+    .wrap { border: 1px solid #d1d5db; border-radius: 12px; padding: 9px 10px; background: #ffffff; }
+    .top { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+    .title { font-weight: 750; font-size: 14px; }
+    .help { color: #6b7280; font-size: 11.5px; line-height: 1.25; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+    button { border: 1px solid #d1d5db; border-radius: 9px; padding: 6px 10px; background: #f9fafb; color: #111827; cursor: pointer; font-weight: 650; font-size:12px; }
+    button.primary { background: #111827; color: #ffffff; border-color: #111827; }
+    button.danger { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    audio { width: 100%; margin-top: 6px; }
+    #sourceAudio { display:none; }
+    .status { font-size: 12px; margin-top: 6px; padding: 6px 8px; border-radius: 9px; background: #f3f4f6; color: #374151; }
+    .timer { font-variant-numeric: tabular-nums; font-weight: 750; font-size:13px; }
+    .pill { display: inline-block; border-radius: 999px; padding: 1px 7px; background: #eef2ff; color: #3730a3; font-size: 11px; margin-left: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="title">Auto-record response <span class="pill">default</span></div>
+      <div class="help">Mic once → play source → recording starts automatically → stop/save.</div>
+    </div>
+    <div class="row">
+      <button id="armBtn" class="primary">Enable mic</button>
+      <button id="playBtn" disabled>Play + record</button>
+      <button id="stopBtn" class="danger" disabled>Stop/save</button>
+      <span class="timer" id="timer">00:00</span>
+    </div>
+    <audio id="sourceAudio" preload="auto"></audio>
+    <audio id="previewAudio" controls style="display:none;"></audio>
+    <div class="status" id="status">Microphone not enabled yet.</div>
+  </div>
+<script>
+const Streamlit = {
+  setComponentReady: function() { window.parent.postMessage({isStreamlitMessage: true, type: "streamlit:componentReady", apiVersion: 1}, "*"); },
+  setFrameHeight: function(height) { window.parent.postMessage({isStreamlitMessage: true, type: "streamlit:setFrameHeight", height: height}, "*"); },
+  setComponentValue: function(value) { window.parent.postMessage({isStreamlitMessage: true, type: "streamlit:setComponentValue", value: value}, "*"); }
+};
+
+let args = {};
+let mediaStream = null;
+let recorder = null;
+let chunks = [];
+let startedAt = null;
+let timerInterval = null;
+let lastSentSignature = null;
+
+const armBtn = document.getElementById('armBtn');
+const playBtn = document.getElementById('playBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusEl = document.getElementById('status');
+const timerEl = document.getElementById('timer');
+const sourceAudio = document.getElementById('sourceAudio');
+const previewAudio = document.getElementById('previewAudio');
+
+function setStatus(msg) { statusEl.textContent = msg; Streamlit.setFrameHeight(document.body.scrollHeight); }
+function setTimer() {
+  if (!startedAt) { timerEl.textContent = '00:00'; return; }
+  const secs = Math.floor((Date.now() - startedAt) / 1000);
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
+  timerEl.textContent = `${mm}:${ss}`;
+}
+function startTimer() { startedAt = Date.now(); setTimer(); timerInterval = setInterval(setTimer, 250); }
+function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+
+function pickMimeType() {
+  const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/wav'];
+  for (const t of options) { if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t; }
+  return '';
+}
+
+async function armMic() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('This browser does not expose microphone recording to this component. Use the manual recorder below.');
+      return;
+    }
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    armBtn.textContent = 'Microphone enabled';
+    armBtn.disabled = true;
+    playBtn.disabled = false;
+    setStatus('Ready. Click “Play source and auto-record.” Recording will begin when playback ends.');
+  } catch (err) {
+    setStatus('Microphone permission was not granted or is unavailable. Use the manual recorder below.');
+  }
+}
+
+function startRecording() {
+  if (!mediaStream) { setStatus('Enable the microphone first.'); return; }
+  chunks = [];
+  const mimeType = pickMimeType();
+  try { recorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : undefined); }
+  catch (err) { setStatus('Could not start browser recorder. Use the manual recorder below.'); return; }
+  recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) chunks.push(ev.data); };
+  recorder.onstop = sendRecording;
+  recorder.start();
+  startTimer();
+  stopBtn.disabled = false;
+  playBtn.disabled = true;
+  setStatus('Recording now. Interpret aloud, then click “Stop and save.”');
+}
+
+async function sendRecording() {
+  stopTimer();
+  stopBtn.disabled = true;
+  playBtn.disabled = false;
+  if (!chunks.length) { setStatus('No audio was captured. Try again or use the manual recorder below.'); return; }
+  const type = (recorder && recorder.mimeType) || 'audio/webm';
+  const blob = new Blob(chunks, { type });
+  previewAudio.src = URL.createObjectURL(blob);
+  previewAudio.style.display = 'block';
+  const arr = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arr);
+  let binary = '';
+  const step = 0x8000;
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
+  }
+  const b64 = btoa(binary);
+  const signature = `${b64.length}-${Date.now()}`;
+  lastSentSignature = signature;
+  Streamlit.setComponentValue({
+    status: 'saved',
+    audio_base64: b64,
+    mime_type: type,
+    duration_seconds: Math.round((Date.now() - startedAt) / 1000),
+    filename_ext: type.includes('mp4') ? 'mp4' : (type.includes('wav') ? 'wav' : 'webm'),
+    signature: signature
+  });
+  setStatus('Recording sent to the app. Use the saved response in the Exam outputs below.');
+}
+
+async function playThenRecord() {
+  if (!mediaStream) { setStatus('Enable the microphone first.'); return; }
+  chunks = [];
+  try {
+    sourceAudio.currentTime = 0;
+    setStatus('Playing source. Recording will start when playback ends.');
+    await sourceAudio.play();
+  } catch (err) {
+    setStatus('Could not autoplay the source. Press play on the audio control, then recording will start when it ends.');
+  }
+}
+
+armBtn.addEventListener('click', armMic);
+playBtn.addEventListener('click', playThenRecord);
+stopBtn.addEventListener('click', () => { if (recorder && recorder.state !== 'inactive') recorder.stop(); });
+sourceAudio.addEventListener('ended', () => { startRecording(); });
+
+window.addEventListener('message', function(event) {
+  if (!event.data || event.data.type !== 'streamlit:render') return;
+  args = event.data.args || {};
+  if (args.source_audio_base64 && args.source_mime) {
+    sourceAudio.src = `data:${args.source_mime};base64,${args.source_audio_base64}`;
+  }
+  if (args.playback_speed) {
+    const speed = Math.max(0.5, Math.min(2.0, Number(args.playback_speed || 1.0)));
+    sourceAudio.playbackRate = speed;
+    sourceAudio.defaultPlaybackRate = speed;
+  }
+  Streamlit.setFrameHeight(document.body.scrollHeight);
+});
+
+Streamlit.setComponentReady();
+Streamlit.setFrameHeight(document.body.scrollHeight);
+</script>
+</body>
+</html>
+"""
+
+
+def get_consecutive_auto_recorder_component():
+    """Create/return a tiny local Streamlit component for auto-recording consecutive responses."""
+    global _AUTO_RECORDER_COMPONENT
+    if _AUTO_RECORDER_COMPONENT is not None:
+        return _AUTO_RECORDER_COMPONENT
+    component_dir = Path(__file__).resolve().parent / "_consecutive_auto_recorder_component"
+    component_dir.mkdir(parents=True, exist_ok=True)
+    (component_dir / "index.html").write_text(_auto_recorder_component_html(), encoding="utf-8")
+    _AUTO_RECORDER_COMPONENT = components.declare_component("consecutive_auto_recorder", path=str(component_dir))
+    return _AUTO_RECORDER_COMPONENT
+
+
+def render_consecutive_auto_recorder(source_audio_path: Path, playback_speed: float, key: str) -> dict[str, Any] | None:
+    """Render the auto-recorder component and return recording payload when available."""
+    if not source_audio_path.exists():
+        st.warning("Source audio is not ready yet.")
+        return None
+    audio_b64 = base64.b64encode(source_audio_path.read_bytes()).decode("ascii")
+    component = get_consecutive_auto_recorder_component()
+    value = component(
+        source_audio_base64=audio_b64,
+        source_mime="audio/mpeg",
+        playback_speed=float(playback_speed or 1.0),
+        key=key,
+        default=None,
+    )
+    return value if isinstance(value, dict) else None
+
+
+def save_auto_recording_payload(payload: dict[str, Any], out_base_path: Path) -> Path | None:
+    """Save an auto-recorder component payload to disk."""
+    if not isinstance(payload, dict) or not payload.get("audio_base64"):
+        return None
+    ext = sanitize_filename_part(str(payload.get("filename_ext") or "webm")).lower() or "webm"
+    if ext not in {"webm", "wav", "mp4", "m4a"}:
+        ext = "webm"
+    out_path = out_base_path.with_suffix(f".{ext}")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        out_path.write_bytes(base64.b64decode(str(payload.get("audio_base64"))))
+        return out_path
+    except Exception:
+        return None
+
+
 def render_simultaneous_audio_player(
     path: Path,
     label: str,
@@ -686,10 +920,10 @@ def inject_phase2e_css() -> None:
         """
         <style>
           .practice-card {
-            border: 1px solid rgba(49, 51, 63, 0.16);
-            border-radius: 14px;
-            padding: 1rem 1.05rem;
-            margin: 0.35rem 0 0.85rem 0;
+            border: 1px solid rgba(49, 51, 63, 0.14);
+            border-radius: 12px;
+            padding: 0.65rem 0.75rem;
+            margin: 0.2rem 0 0.45rem 0;
             background: rgba(255, 255, 255, 0.72);
             box-shadow: 0 1px 2px rgba(0,0,0,0.04);
           }
@@ -701,17 +935,17 @@ def inject_phase2e_css() -> None:
           }
           .practice-card-title {
             font-weight: 700;
-            font-size: 0.92rem;
+            font-size: 0.82rem;
             text-transform: uppercase;
-            letter-spacing: 0.035em;
-            margin-bottom: 0.35rem;
+            letter-spacing: 0.032em;
+            margin-bottom: 0.25rem;
           }
           .practice-card-meta {
-            font-size: 0.82rem;
+            font-size: 0.76rem;
             color: rgba(49, 51, 63, 0.68);
-            margin-bottom: 0.55rem;
+            margin-bottom: 0.35rem;
           }
-          .practice-card-body { font-size: 1rem; line-height: 1.55; }
+          .practice-card-body { font-size: 0.94rem; line-height: 1.38; }
           .practice-card-body.muted {
             color: rgba(49, 51, 63, 0.58);
             font-style: italic;
@@ -721,8 +955,8 @@ def inject_phase2e_css() -> None:
             align-items: center;
             gap: 0.45rem;
             flex-wrap: wrap;
-            margin: 0.15rem 0 0.75rem 0;
-            padding: 0.35rem 0.45rem;
+            margin: 0.05rem 0 0.35rem 0;
+            padding: 0.24rem 0.38rem;
             border-radius: 999px;
             background: rgba(250, 250, 250, 0.72);
             border: 1px solid rgba(49, 51, 63, 0.10);
@@ -750,6 +984,86 @@ def inject_phase2e_css() -> None:
             text-overflow: ellipsis;
             white-space: nowrap;
           }
+          .guided-card {
+            border: 1px solid rgba(49, 51, 63, 0.12);
+            border-radius: 16px;
+            padding: 0.55rem 0.65rem;
+            margin: 0.15rem 0 0.42rem 0;
+            background: rgba(255, 255, 255, 0.76);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.035);
+            min-height: 4.35rem;
+          }
+          .guided-card-title {
+            font-weight: 700;
+            font-size: 0.88rem;
+            margin-bottom: 0.22rem;
+          }
+          .guided-card-body {
+            color: rgba(49, 51, 63, 0.72);
+            font-size: 0.80rem;
+            line-height: 1.25;
+          }
+          /* Compact Streamlit spacing for the app's long practice/exam pages. */
+          div[data-testid="stVerticalBlock"] { gap: 0.35rem; }
+          div[data-testid="stHorizontalBlock"] { gap: 0.55rem; }
+          div[data-testid="stMetric"] { padding: 0.15rem 0.35rem; }
+          .stButton > button { padding: 0.35rem 0.7rem; min-height: 2.15rem; }
+          .stTextArea textarea { min-height: 68px !important; }
+          .stExpander { margin: 0.15rem 0; }
+          h1, h2, h3 { margin-top: 0.25rem !important; margin-bottom: 0.35rem !important; }
+          h4, h5, h6 { margin-top: 0.15rem !important; margin-bottom: 0.25rem !important; }
+          .context-action-panel {
+            border: 1px solid rgba(30, 136, 229, 0.16);
+            border-radius: 14px;
+            padding: 0.5rem 0.65rem;
+            margin: 0.1rem 0 0.45rem 0;
+            background: linear-gradient(180deg, rgba(245, 249, 255, 0.92), rgba(255,255,255,0.78));
+            box-shadow: 0 1px 3px rgba(0,0,0,0.035);
+          }
+          .context-panel-title {
+            font-weight: 800;
+            font-size: 0.92rem;
+            margin-bottom: 0.28rem;
+            color: rgba(20, 53, 85, 0.95);
+          }
+          .context-panel-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.32rem;
+            align-items: center;
+          }
+          .context-action-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.22rem;
+            padding: 0.20rem 0.50rem;
+            border-radius: 999px;
+            background: rgba(30, 136, 229, 0.085);
+            border: 1px solid rgba(30, 136, 229, 0.12);
+            color: rgba(28, 55, 82, 0.92);
+            font-size: 0.78rem;
+            line-height: 1.18;
+          }
+          .context-action-pill.ready {
+            background: rgba(46, 125, 50, 0.095);
+            border-color: rgba(46, 125, 50, 0.14);
+          }
+          .context-action-pill.warn {
+            background: rgba(251, 140, 0, 0.095);
+            border-color: rgba(251, 140, 0, 0.14);
+          }
+          .context-panel-hint {
+            margin-top: 0.28rem;
+            color: rgba(49, 51, 63, 0.68);
+            font-size: 0.76rem;
+            line-height: 1.22;
+          }
+          .compact-work-caption {
+            color: rgba(49, 51, 63, 0.68);
+            font-size: 0.78rem;
+            margin-top: -0.15rem;
+          }
+
           @media (max-width: 760px) {
             .practice-card { padding: 0.9rem; }
             .practice-card-body { font-size: 0.96rem; }
@@ -758,6 +1072,140 @@ def inject_phase2e_css() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def inject_arrow_key_shortcuts() -> None:
+    """Install lightweight browser shortcuts for visible Previous/Next controls."""
+    components.html(
+        """
+        <script>
+        (function() {
+          if (window.parent.__interpreterArrowShortcutsInstalled) return;
+          window.parent.__interpreterArrowShortcutsInstalled = true;
+          const isTyping = () => {
+            const a = window.parent.document.activeElement;
+            if (!a) return false;
+            const tag = (a.tagName || '').toLowerCase();
+            return tag === 'input' || tag === 'textarea' || tag === 'select' || a.isContentEditable;
+          };
+          const visibleEnabledButtons = () => Array.from(window.parent.document.querySelectorAll('button')).filter(b => {
+            if (b.disabled || b.getAttribute('aria-disabled') === 'true') return false;
+            const r = b.getBoundingClientRect();
+            const style = window.parent.getComputedStyle(b);
+            return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+          });
+          const clickByLabels = (labels) => {
+            const buttons = visibleEnabledButtons();
+            for (const label of labels) {
+              const exact = buttons.find(b => (b.innerText || '').trim().toLowerCase() === label.toLowerCase());
+              if (exact) { exact.click(); return true; }
+            }
+            for (const label of labels) {
+              const partial = buttons.find(b => (b.innerText || '').trim().toLowerCase().includes(label.toLowerCase()));
+              if (partial) { partial.click(); return true; }
+            }
+            return false;
+          };
+          window.parent.document.addEventListener('keydown', function(e) {
+            if (isTyping() || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+            if (e.key === 'ArrowRight') {
+              if (clickByLabels(['Next segment', 'Next term', 'Next drill', 'Next', 'Skip'])) e.preventDefault();
+            } else if (e.key === 'ArrowLeft') {
+              if (clickByLabels(['Previous segment', 'Previous term', 'Previous drill', 'Previous', 'Back'])) e.preventDefault();
+            }
+          }, true);
+        })();
+        </script>
+        """,
+        height=0,
+        scrolling=False,
+    )
+
+def guided_card(title: str, body: str, icon: str = "•") -> None:
+    """Small user-facing card for guided workflow sections."""
+    st.markdown(
+        f"""
+        <div class="guided-card">
+          <div class="guided-card-title">{html.escape(icon)} {html.escape(title)}</div>
+          <div class="guided-card-body">{html.escape(body)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def guided_status(label: str, ready: bool, detail: str = "") -> str:
+    mark = "✅" if ready else "○"
+    detail_part = f" — {detail}" if detail else ""
+    return f"{mark} {label}{detail_part}"
+
+def show_guided_steps(steps: list[tuple[str, str, str]], *, compact: bool = True) -> None:
+    if not steps:
+        return
+    if compact:
+        labels = [f"{icon} {title}" for icon, title, _body in steps]
+        st.caption(" → ".join(labels))
+        with st.expander("Workflow details", expanded=False):
+            cols = st.columns(min(len(steps), 4))
+            for col, (icon, title, body) in zip(cols, steps):
+                with col:
+                    guided_card(title, body, icon)
+        return
+    cols = st.columns(len(steps)) if steps else []
+    for col, (icon, title, body) in zip(cols, steps):
+        with col:
+            guided_card(title, body, icon)
+
+def render_context_action_panel(title: str, items: list[str], *, statuses: list[tuple[str, bool]] | None = None, hint: str = "") -> None:
+    """Compact, tab-specific work panel used to keep primary actions visible."""
+    def pill(text: str, cls: str = "") -> str:
+        return f'<span class="context-action-pill {cls}">{html.escape(str(text))}</span>'
+    action_html = "".join(pill(item) for item in items if str(item).strip())
+    status_html = ""
+    if statuses:
+        status_html = "".join(pill(("✅ " if ok else "○ ") + label, "ready" if ok else "warn") for label, ok in statuses)
+    hint_html = f'<div class="context-panel-hint">{html.escape(hint)}</div>' if hint else ""
+    st.markdown(
+        f"""
+        <div class="context-action-panel">
+          <div class="context-panel-title">{html.escape(title)}</div>
+          <div class="context-panel-row">{action_html}{status_html}</div>
+          {hint_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def render_current_script_summary(data: dict[str, Any], script_id: str, exam_mode: str, session_id: str = "") -> None:
+    """Compact current-script card for Exam Mode."""
+    segments = ensure_list(data.get("paired_segments")) if isinstance(data, dict) else []
+    title = str(data.get("title") or script_id or "Untitled script")
+    category = str(data.get("category") or "")
+    subcategory = str(data.get("subcategory") or "")
+    fmt = str(data.get("format") or "")
+    profile = data.get("jurisdiction_context") if isinstance(data, dict) else {}
+    language_pattern = ""
+    if isinstance(profile, dict):
+        language_pattern = str(profile.get("language_pattern") or "")
+    cols = st.columns([2, 1, 1, 1])
+    with cols[0]:
+        st.markdown(f"**{title}**")
+        meta = " • ".join([x for x in [category, subcategory] if x])
+        if meta:
+            st.caption(meta)
+    with cols[1]:
+        st.metric("Mode", exam_mode)
+    with cols[2]:
+        st.metric("Segments", len(segments))
+    with cols[3]:
+        st.metric("Script ID", script_id)
+    if fmt or language_pattern or session_id:
+        with st.expander("About this script", expanded=False):
+            if fmt:
+                st.write(f"**Format:** {fmt}")
+            if language_pattern:
+                st.write(f"**Language pattern:** {language_pattern}")
+            if session_id:
+                st.write(f"**Session:** `{session_id}`")
 
 ERROR_TAGS = [
     "Omission",
@@ -1326,6 +1774,45 @@ def exam_log_to_csv(rows: list[dict[str, Any]]) -> str:
     return output.getvalue()
 
 
+EXAM_EVALUATION_LOG_FIELDS = [
+    "timestamp", "session_id", "script_id", "title", "exam_mode", "transcript_source",
+    "estimated_score", "passing_target", "likely_level", "confidence",
+    "meaning_key_unit_accuracy", "completeness", "legal_terminology", "delivery_grammar",
+    "target_wpm", "rubric_unit_count", "remedial_json", "score_summary_docx", "score_summary_csv", "score_summary_txt",
+]
+
+
+def exam_evaluation_log_to_csv(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return ""
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=EXAM_EVALUATION_LOG_FIELDS, extrasaction="ignore")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({k: row.get(k, "") for k in EXAM_EVALUATION_LOG_FIELDS})
+    return output.getvalue()
+
+
+def load_exam_evaluation_log(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as f:
+            return list(csv.DictReader(f))
+    except Exception:
+        return []
+
+
+def append_exam_evaluation_log(path: Path, row: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    exists = path.exists() and path.stat().st_size > 0
+    with path.open("a", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=EXAM_EVALUATION_LOG_FIELDS, extrasaction="ignore")
+        if not exists:
+            writer.writeheader()
+        writer.writerow({k: row.get(k, "") for k in EXAM_EVALUATION_LOG_FIELDS})
+
+
 def save_audio_input(uploaded_audio: Any, out_path: Path) -> Path | None:
     """Save Streamlit st.audio_input output to disk."""
     if uploaded_audio is None:
@@ -1496,6 +1983,56 @@ def make_zip_from_paths(paths: list[Path], zip_path: Path) -> Path | None:
             zf.write(p, arcname=p.name)
     return zip_path
 
+
+def make_exam_bundle_zip(paths: list[Path], zip_path: Path, manifest: dict[str, Any] | None = None) -> Path | None:
+    """Create a cleaner exam output bundle grouped by file type."""
+    valid = []
+    seen = set()
+    for p in paths:
+        if not p or not p.exists() or not p.is_file() or p.stat().st_size <= 0:
+            continue
+        resolved = str(p.resolve())
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        valid.append(p)
+    if not valid and not manifest:
+        return None
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def folder_for(path: Path) -> str:
+        suffix = path.suffix.lower()
+        name = path.name.lower()
+        if suffix in {".mp3", ".m4a", ".wav", ".webm"}:
+            return "audio"
+        if "transcript" in name or "alignment" in name or "timestamp" in name:
+            return "transcripts"
+        if "rubric" in name or "score" in name or "key_unit" in name or "remedial" in name or "drill" in name:
+            return "score_and_drills"
+        if suffix in {".csv", ".txt", ".docx", ".json"}:
+            return "reports"
+        return "other"
+
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        if manifest:
+            zf.writestr("README_exam_bundle.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+        for p in valid:
+            zf.write(p, arcname=f"{folder_for(p)}/{p.name}")
+    return zip_path
+
+
+def transcript_source_display_name(engine: str, model_name: str | None = None) -> str:
+    if engine == "Local whisper.cpp":
+        model_label = Path(str(model_name or DEFAULT_WHISPER_CPP_MODEL)).name
+        return f"Local whisper.cpp — {model_label}"
+    model_label = str(model_name or "whisper-1").strip() or "whisper-1"
+    return f"OpenAI — {model_label}"
+
+
+def compact_check(label: str, ok: bool, detail: str = "") -> str:
+    icon = "✅" if ok else "⚠️"
+    return f"{icon} **{label}:** {detail or ('Ready' if ok else 'Missing')}"
+
 # -----------------------------
 # Phase 3B.1 exam transcription helpers
 # -----------------------------
@@ -1507,10 +2044,16 @@ TRANSCRIPT_CSV_FIELDS = [
 
 
 def get_openai_api_key(manual_key: str | None = None) -> str:
-    """Return an OpenAI API key from the app field or environment."""
+    """Return an OpenAI API key from the app field, Streamlit secrets, or environment."""
     key = (manual_key or "").strip()
     if key:
         return key
+    try:
+        secret_key = st.secrets.get("OPENAI_API_KEY", "")
+        if secret_key:
+            return str(secret_key).strip()
+    except Exception:
+        pass
     return os.environ.get("OPENAI_API_KEY", "").strip()
 
 
@@ -1553,6 +2096,218 @@ def prepare_audio_for_transcription(src_path: Path, work_dir: Path) -> Path:
         raise ValueError("Compressed recording is still over the 25 MB transcription limit. Split it into smaller parts first.")
     return dst
 
+
+
+def prepare_audio_for_local_whisper(src_path: Path, work_dir: Path) -> Path:
+    """Convert any saved recording to mono 16 kHz WAV for local whisper.cpp."""
+    if not src_path.exists() or not src_path.is_file():
+        raise FileNotFoundError(f"Recording not found: {src_path}")
+    if not shutil.which("ffmpeg"):
+        raise FileNotFoundError("ffmpeg was not found on PATH; local Whisper needs ffmpeg to prepare recordings.")
+    work_dir.mkdir(parents=True, exist_ok=True)
+    dst = work_dir / f"{src_path.stem}_local_whisper.wav"
+    subprocess.run([
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+        "-i", str(src_path), "-vn", "-ac", "1", "-ar", "16000",
+        "-c:a", "pcm_s16le", str(dst)
+    ], check=True)
+    return dst
+
+
+def find_local_whisper_binary(candidate: str | None = None) -> Path | None:
+    """Return a usable whisper.cpp command path when configured or found on PATH."""
+    raw = (candidate or "").strip()
+    candidates: list[Path] = []
+    if raw:
+        candidates.append(Path(raw).expanduser())
+    candidates.extend([
+        DEFAULT_WHISPER_CPP_BINARY,
+        APP_DIR / "whisper.cpp" / "build" / "bin" / "main",
+        APP_DIR / "whisper.cpp" / "main",
+    ])
+    for name in ("whisper-cli", "main"):
+        found = shutil.which(name)
+        if found:
+            candidates.append(Path(found))
+    for path in candidates:
+        with contextlib.suppress(Exception):
+            if path.exists() and path.is_file():
+                return path.resolve()
+    return None
+
+
+def local_whisper_language_arg(language_hint: str | None) -> str | None:
+    if not language_hint:
+        return None
+    if language_hint == "en":
+        return "en"
+    if language_hint == "es":
+        return "es"
+    return None
+
+
+def parse_whisper_cpp_time_value(value: Any) -> float | None:
+    """Parse whisper.cpp timestamp values into seconds.
+
+    whisper.cpp JSON can expose offsets as milliseconds/centiseconds or
+    timestamps as strings such as 00:00:02,450 depending on the build.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        v = float(value)
+        if v > 100000:  # microseconds in some tools
+            return v / 1_000_000.0
+        if v > 1000:  # milliseconds, the common whisper.cpp offset unit
+            return v / 1000.0
+        return v
+    raw = str(value).strip()
+    if not raw:
+        return None
+    raw = raw.replace(",", ".")
+    parts = raw.split(":")
+    try:
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + float(parts[1])
+        return float(raw)
+    except Exception:
+        return None
+
+
+def normalize_local_whisper_cpp_json(timestamp_data: dict[str, Any]) -> dict[str, Any]:
+    """Convert common whisper.cpp JSON shapes to the OpenAI-style timestamp shape.
+
+    The rest of the app already understands {text, segments, words}. This
+    adapter lets local whisper.cpp timestamp JSON feed the same review/alignment
+    pipeline without requiring OpenAI whisper-1.
+    """
+    if not isinstance(timestamp_data, dict):
+        return {"text": "", "segments": [], "words": []}
+    raw_segments = (
+        timestamp_data.get("segments")
+        or timestamp_data.get("transcription")
+        or timestamp_data.get("results")
+        or []
+    )
+    segments: list[dict[str, Any]] = []
+    words: list[dict[str, Any]] = []
+    if isinstance(raw_segments, list):
+        for idx, seg in enumerate(raw_segments):
+            if not isinstance(seg, dict):
+                continue
+            text = str(seg.get("text", seg.get("transcript", seg.get("sentence", ""))) or "").strip()
+            offsets = seg.get("offsets") if isinstance(seg.get("offsets"), dict) else {}
+            timestamps = seg.get("timestamps") if isinstance(seg.get("timestamps"), dict) else {}
+            start = (
+                parse_whisper_cpp_time_value(seg.get("start"))
+                if seg.get("start") is not None else None
+            )
+            end = (
+                parse_whisper_cpp_time_value(seg.get("end"))
+                if seg.get("end") is not None else None
+            )
+            if start is None:
+                start = parse_whisper_cpp_time_value(offsets.get("from", timestamps.get("from")))
+            if end is None:
+                end = parse_whisper_cpp_time_value(offsets.get("to", timestamps.get("to")))
+            start = float(start or 0.0)
+            end = float(end if end is not None else start)
+            end = max(end, start)
+            if text or end > start:
+                segments.append({"id": idx, "start": start, "end": end, "text": text})
+            token_items = seg.get("tokens") or seg.get("words") or []
+            if isinstance(token_items, list):
+                for token in token_items:
+                    if not isinstance(token, dict):
+                        continue
+                    token_text = str(token.get("word", token.get("text", token.get("token", ""))) or "").strip()
+                    if not token_text:
+                        continue
+                    token_offsets = token.get("offsets") if isinstance(token.get("offsets"), dict) else {}
+                    token_timestamps = token.get("timestamps") if isinstance(token.get("timestamps"), dict) else {}
+                    t_start = parse_whisper_cpp_time_value(token.get("start"))
+                    t_end = parse_whisper_cpp_time_value(token.get("end"))
+                    if t_start is None:
+                        t_start = parse_whisper_cpp_time_value(token_offsets.get("from", token_timestamps.get("from")))
+                    if t_end is None:
+                        t_end = parse_whisper_cpp_time_value(token_offsets.get("to", token_timestamps.get("to")))
+                    if t_start is None:
+                        t_start = start
+                    if t_end is None:
+                        t_end = max(float(t_start), end)
+                    words.append({"word": token_text, "start": float(t_start), "end": max(float(t_end), float(t_start))})
+    text = str(timestamp_data.get("text") or timestamp_data.get("result", {}).get("text", "") if isinstance(timestamp_data.get("result"), dict) else "").strip()
+    if not text:
+        text = " ".join(s.get("text", "") for s in segments if str(s.get("text", "")).strip()).strip()
+    return {"text": text, "segments": segments, "words": words, "raw_whisper_cpp": timestamp_data}
+
+
+def transcribe_audio_local_whisper_cpp(
+    audio_path: Path,
+    binary_path: str | None,
+    model_path: str | None,
+    transcript_dir: Path,
+    item_index: str,
+    language_hint: str | None = None,
+    include_timestamps: bool = True,
+) -> tuple[str, Path | None, Path | None]:
+    """Transcribe one audio file with a local whisper.cpp binary and model.
+
+    Expected command form is compatible with whisper-cli/main:
+        whisper-cli -m MODEL -f AUDIO -otxt -oj -of OUT_PREFIX [-l en|es]
+
+    When include_timestamps is enabled, whisper.cpp JSON is normalized into the
+    same {text, segments, words} shape used by the OpenAI timestamp pipeline.
+    """
+    binary = find_local_whisper_binary(binary_path)
+    if not binary:
+        raise FileNotFoundError(
+            "Local whisper.cpp binary was not found. Set the path to whisper-cli/main in Transcription settings."
+        )
+    model = Path((model_path or "").strip() or str(DEFAULT_WHISPER_CPP_MODEL)).expanduser()
+    if not model.exists() or not model.is_file():
+        raise FileNotFoundError(
+            f"Local Whisper model was not found: {model}. Download a ggml model, preferably ggml-large-v3-turbo.bin, and set its path."
+        )
+    prepared = prepare_audio_for_local_whisper(audio_path, transcript_dir / "prepared_local_audio")
+    out_prefix = transcript_dir / f"local_whisper_{sanitize_filename_part(item_index)}"
+    cmd = [str(binary), "-m", str(model), "-f", str(prepared), "-otxt"]
+    if include_timestamps:
+        cmd.append("-oj")
+    cmd.extend(["-of", str(out_prefix)])
+    lang = local_whisper_language_arg(language_hint)
+    if lang:
+        cmd.extend(["-l", lang])
+    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"local whisper.cpp transcription failed. {detail[:1200]}")
+    txt_path = out_prefix.with_suffix(".txt")
+    if not txt_path.exists():
+        matches = sorted(transcript_dir.glob(f"{out_prefix.name}*.txt"))
+        if matches:
+            txt_path = matches[0]
+    json_path = out_prefix.with_suffix(".json")
+    if not json_path.exists():
+        matches = sorted(transcript_dir.glob(f"{out_prefix.name}*.json"))
+        if matches:
+            json_path = matches[0]
+    text = ""
+    if txt_path.exists():
+        text = txt_path.read_text(encoding="utf-8", errors="replace").strip()
+    normalized_json_path: Path | None = None
+    if include_timestamps and json_path.exists():
+        raw = json.loads(json_path.read_text(encoding="utf-8", errors="replace"))
+        normalized = normalize_local_whisper_cpp_json(raw)
+        if not text:
+            text = str(normalized.get("text", "") or words_to_text(normalize_timestamp_words(normalized))).strip()
+        normalized_json_path = transcript_dir / f"{sanitize_filename_part(item_index)}_local_whisper_timestamps.json"
+        normalized_json_path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not text:
+        text = (result.stdout or "").strip()
+    return text, txt_path if txt_path.exists() else None, normalized_json_path
 
 def transcribe_audio_openai(audio_path: Path, model: str, api_key: str, language_hint: str | None = None) -> str:
     """Transcribe one audio file with OpenAI speech-to-text."""
@@ -2132,6 +2887,9 @@ def build_exam_transcript_outputs(
     model: str,
     api_key: str,
     language_hint: str | None,
+    engine: str = "OpenAI API",
+    local_binary_path: str | None = None,
+    local_model_path: str | None = None,
 ) -> tuple[list[dict[str, Any]], Path, Path]:
     transcript_dir.mkdir(parents=True, exist_ok=True)
     work_dir = transcript_dir / "prepared_audio"
@@ -2140,22 +2898,42 @@ def build_exam_transcript_outputs(
         response_path = Path(str(row.get("response_audio", "")))
         if not response_path.exists() or not response_path.is_file():
             continue
-        prepared = prepare_audio_for_transcription(response_path, work_dir)
         item_index = str(row.get("item_index", "item"))
         enriched = dict(row)
-        if str(model).strip() == "whisper-1":
-            # Unified transcript pipeline: one Whisper-1 verbose_json call provides
-            # both the plain transcript and timestamp data for later review/alignment.
-            timestamp_data = transcribe_audio_openai_with_timestamps(prepared, api_key, language_hint)
-            text = str(timestamp_data.get("text", "") or words_to_text(normalize_timestamp_words(timestamp_data))).strip()
-            timestamp_json_path = transcript_dir / f"{sanitize_filename_part(script_id)}_{session_id}_{sanitize_filename_part(item_index)}_whisper_timestamps.json"
-            timestamp_json_path.write_text(json.dumps(timestamp_data, ensure_ascii=False, indent=2), encoding="utf-8")
-            enriched["timestamp_json_file"] = str(timestamp_json_path)
-            enriched["timestamp_full_transcript_file"] = ""
-            enriched["transcription_model"] = "whisper-1"
+        if engine == "Local whisper.cpp":
+            text, local_raw_txt, local_timestamp_json = transcribe_audio_local_whisper_cpp(
+                response_path,
+                binary_path=local_binary_path,
+                model_path=local_model_path,
+                transcript_dir=transcript_dir,
+                item_index=item_index,
+                language_hint=language_hint,
+                include_timestamps=True,
+            )
+            enriched["transcription_engine"] = "local_whisper_cpp"
+            enriched["transcription_model"] = Path((local_model_path or "").strip() or str(DEFAULT_WHISPER_CPP_MODEL)).name
+            if local_raw_txt:
+                enriched["local_whisper_raw_txt_file"] = str(local_raw_txt)
+            if local_timestamp_json:
+                enriched["timestamp_json_file"] = str(local_timestamp_json)
+                enriched["timestamp_full_transcript_file"] = ""
         else:
-            text = transcribe_audio_openai(prepared, model, api_key, language_hint)
-            enriched["transcription_model"] = str(model)
+            prepared = prepare_audio_for_transcription(response_path, work_dir)
+            if str(model).strip() == "whisper-1":
+                # Unified transcript pipeline: one Whisper-1 verbose_json call provides
+                # both the plain transcript and timestamp data for later review/alignment.
+                timestamp_data = transcribe_audio_openai_with_timestamps(prepared, api_key, language_hint)
+                text = str(timestamp_data.get("text", "") or words_to_text(normalize_timestamp_words(timestamp_data))).strip()
+                timestamp_json_path = transcript_dir / f"{sanitize_filename_part(script_id)}_{session_id}_{sanitize_filename_part(item_index)}_whisper_timestamps.json"
+                timestamp_json_path.write_text(json.dumps(timestamp_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                enriched["timestamp_json_file"] = str(timestamp_json_path)
+                enriched["timestamp_full_transcript_file"] = ""
+                enriched["transcription_engine"] = "openai_api"
+                enriched["transcription_model"] = "whisper-1"
+            else:
+                text = transcribe_audio_openai(prepared, model, api_key, language_hint)
+                enriched["transcription_engine"] = "openai_api"
+                enriched["transcription_model"] = str(model)
         transcript_path = transcript_dir / f"{sanitize_filename_part(script_id)}_{session_id}_{sanitize_filename_part(item_index)}_transcript.txt"
         transcript_path.write_text(text, encoding="utf-8")
         enriched["transcript_text"] = text
@@ -5411,7 +6189,8 @@ def render_drill_practice_panel(
     if reveal_key not in st.session_state:
         st.session_state[reveal_key] = False
 
-    order = st.selectbox("Order", ["Original order", "Priority order", "Random"], index=0, key=f"{panel_key}_order")
+    with st.expander("Practice options", expanded=False):
+        order = st.selectbox("Order", ["Original order", "Priority order", "Random"], index=0, key=f"{panel_key}_order")
     filtered_drills = list(drills)
     if order == "Priority order":
         filtered_drills = sorted(filtered_drills, key=lambda d: (int(str(d.get("priority") or "9") if str(d.get("priority") or "9").isdigit() else 9), int(d.get("drill_index", 9999) or 9999)))
@@ -5424,12 +6203,34 @@ def render_drill_practice_panel(
     current_idx = int(st.session_state[idx_key])
     current_drill = filtered_drills[current_idx]
     st.progress((current_idx + 1) / max(len(filtered_drills), 1), text=f"{panel_label}: {current_idx + 1} of {len(filtered_drills)}")
+    render_context_action_panel(
+        f"{panel_label} work area",
+        [f"Item {current_idx + 1}/{len(filtered_drills)}", "Prompt", "Reveal", "Score", "Next"],
+        statuses=[("Answer revealed", bool(st.session_state.get(reveal_key)))],
+        hint="Keep your hands on the keyboard when possible: use ← / → for previous/next.",
+    )
     st.markdown(compact_metadata_row([
         current_drill.get("item_label", f"Item {current_idx + 1}"),
         current_drill.get("drill_type", "Review"),
         current_drill.get("direction", ""),
         current_drill.get("focus", ""),
     ]), unsafe_allow_html=True)
+
+    nav_a, nav_b, nav_c, nav_d = st.columns([1, 1, 1, 2])
+    with nav_a:
+        if st.button("Previous", key=f"{panel_key}_prev_top", disabled=current_idx <= 0):
+            st.session_state[idx_key] = max(0, current_idx - 1)
+            st.session_state[reveal_key] = False
+            st.rerun()
+    with nav_b:
+        if st.button("Next", key=f"{panel_key}_next_top", disabled=current_idx >= len(filtered_drills) - 1, type="primary"):
+            st.session_state[idx_key] = min(len(filtered_drills) - 1, current_idx + 1)
+            st.session_state[reveal_key] = False
+            st.rerun()
+    with nav_c:
+        if st.button("Reveal", key=f"{panel_key}_reveal_top", disabled=bool(st.session_state.get(reveal_key))):
+            st.session_state[reveal_key] = True
+            st.rerun()
 
     prompt_text, prompt_lang = drill_audio_text(current_drill, "prompt")
     answer_text, answer_lang = drill_audio_text(current_drill, "answer")
@@ -5527,20 +6328,21 @@ def render_drill_practice_panel(
                 st.session_state[reveal_key] = False
                 st.rerun()
 
-    n1, n2, n3 = st.columns(3)
-    with n1:
-        if st.button("⬅ Previous", key=f"{panel_key}_prev"):
-            st.session_state[idx_key] = max(0, current_idx - 1)
-            st.session_state[reveal_key] = False
-            st.rerun()
-    with n2:
-        if st.button("➡ Next", key=f"{panel_key}_next"):
-            st.session_state[idx_key] = min(len(filtered_drills) - 1, current_idx + 1)
-            st.session_state[reveal_key] = False
-            st.rerun()
-    with n3:
-        if st.session_state.drill_studio_session_rows:
-            st.download_button("Download session CSV", data=drill_studio_log_to_csv(st.session_state.drill_studio_session_rows).encode("utf-8"), file_name=f"{sanitize_filename_part(drill_set_id)}_drill_session.csv", mime="text/csv", key=f"{panel_key}_download_session")
+    with st.expander("More navigation and session export", expanded=False):
+        n1, n2, n3 = st.columns(3)
+        with n1:
+            if st.button("⬅ Previous", key=f"{panel_key}_prev"):
+                st.session_state[idx_key] = max(0, current_idx - 1)
+                st.session_state[reveal_key] = False
+                st.rerun()
+        with n2:
+            if st.button("➡ Next", key=f"{panel_key}_next"):
+                st.session_state[idx_key] = min(len(filtered_drills) - 1, current_idx + 1)
+                st.session_state[reveal_key] = False
+                st.rerun()
+        with n3:
+            if st.session_state.drill_studio_session_rows:
+                st.download_button("Download session CSV", data=drill_studio_log_to_csv(st.session_state.drill_studio_session_rows).encode("utf-8"), file_name=f"{sanitize_filename_part(drill_set_id)}_drill_session.csv", mime="text/csv", key=f"{panel_key}_download_session")
 
 
 def render_personalized_drills(drills: list[dict[str, Any]], srs_terms: list[dict[str, Any]] | None = None) -> None:
@@ -5942,120 +6744,273 @@ def reset_practice_state(reason: str = "") -> None:
 
 st.set_page_config(page_title="Interpreter Audio Generator", page_icon="🎧", layout="wide")
 inject_phase2e_css()
+inject_arrow_key_shortcuts()
 st.title("🎧 Interpreter Audio Generator")
-st.caption("Cloud version: generated audio, recordings, transcripts, drill history, and ZIPs are temporary. Download anything you want to keep.")
-st.caption("Local Streamlit dashboard for audio generation, practice, exam review, feedback, and interactive personalized drills.")
+st.caption("Generate practice audio, simulate exams, review your performance, and build custom drills from your results.")
+
+# Dynamic workspace selection drives the sidebar so settings stay relevant to the active task.
+WORKSPACES = [
+    "Generate Audio",
+    "Consecutive Practice",
+    "Simultaneous Practice",
+    "Exam Mode",
+    "Drill Studio",
+    "Study History",
+    "Term Review",
+]
+
+# Safe defaults. The dynamic sidebar overrides only the controls relevant to the selected workspace.
+generator_path = Path(DEFAULT_GENERATOR_PATH).expanduser()
+output_dir = Path((APP_DIR / "audio_output").resolve()).expanduser()
+speed_mode = "learning"
+include_flashcards = True
+split_flashcards = True
+source_only_mode = True
+consecutive_mode = True
+full_speed = True
+targeted_terms = False
+inline_cues = False
+combined_all = False
+skip_existing = True
+verify_voices = True
+consecutive_ratio = 1.35
+consecutive_min = 3.0
+consecutive_max = 14.0
+consecutive_gap = 1.8
+source_only_gap = 0.75
+source_only_speaker_gap = 1.35
+source_only_merge_same_speaker = True
+source_only_max_merged_chars = 2800
+source_only_continuation_gap = 0.18
+practice_audio_enabled = True
+practice_audio_autoplay_source = True
+practice_audio_play_correction = True
+practice_audio_show_replay = True
+practice_audio_use_profile = True
+audio_only_source_mode = False
+consecutive_playback_speed = 1.0
+practice_audio_cache_dir = Path((APP_DIR / "practice_audio_cache").resolve()).expanduser()
+persistent_log_path = Path(DEFAULT_PRACTICE_LOG_PATH).expanduser()
+auto_save_practice_log = True
+simultaneous_log_path = Path(DEFAULT_SIMULTANEOUS_LOG_PATH).expanduser()
+auto_save_simultaneous_log = True
+term_review_log_path = Path(DEFAULT_TERM_REVIEW_LOG_PATH).expanduser()
+term_srs_state_path = Path(DEFAULT_TERM_SRS_STATE_PATH).expanduser()
+drill_studio_log_path = Path(DEFAULT_DRILL_STUDIO_LOG_PATH).expanduser()
+auto_save_term_review_log = True
+show_history_preview_rows = 100
+term_audio_enabled = True
+term_audio_autoplay_prompt = True
+term_audio_play_answer_on_reveal = True
+term_audio_show_replay = True
+term_audio_only_prompt = False
+term_audio_cache_dir = Path((APP_DIR / "term_audio_cache").resolve()).expanduser()
+
+# Exam Mode defaults. When Exam Mode is active, the dynamic sidebar overrides these.
+exam_playback_speed = 1.0
+show_exam_reference = True
+use_profile_exam = True
+exam_speed_mode = "normal"
+enable_exam_transcription = False
+transcript_engine = "OpenAI API"
+transcript_model = "whisper-1"
+transcript_language_hint_label = "Auto"
+manual_openai_key = ""
+local_whisper_binary_path = str(DEFAULT_WHISPER_CPP_BINARY)
+local_whisper_model_path = str(DEFAULT_WHISPER_CPP_MODEL)
+timestamp_lag_seconds = 3.0
+timestamp_padding_seconds = 1.5
+timestamp_exact_timing = True
+drill_target_wpm = 140
+max_drill_count = 18
+rubric_ai_model = OPENAI_AI_FEEDBACK_MODELS[0] if OPENAI_AI_FEEDBACK_MODELS else "gpt-4o-mini"
+exam_evaluation_log_path = Path(DEFAULT_EXAM_EVALUATION_LOG_PATH).expanduser()
+auto_save_exam_evaluation_log = True
 
 with st.sidebar:
-    st.header("Generator")
-    generator_path = Path(st.text_input("Generator script path", value=str(DEFAULT_GENERATOR_PATH))).expanduser()
-    output_dir = Path(st.text_input("Output folder", value=str(RUNTIME_OUTPUT_DIR.resolve()))).expanduser()
-    st.divider()
-    st.header("Audio settings")
-    speed_mode = st.selectbox("Speed mode", ["learning", "normal", "fast"], index=0)
-    split_flashcards = st.checkbox("Split flashcards and script", value=True)
-    include_flashcards = st.checkbox("Include flashcards", value=True)
-    consecutive_mode = st.checkbox("Generate consecutive mode", value=True)
-    source_only_mode = st.checkbox(
-        "Generate source-only practice audio",
-        value=True,
-        help="Exports <script_id>_source_only.mp3 with only the original/source language side of each segment, preserving JSON speaker voices.",
+    st.header("Workspace")
+    st.caption("Web build: generated files are temporary. Download anything you want to keep.")
+    selected_workspace = st.radio(
+        "Choose what you want to do",
+        WORKSPACES,
+        index=WORKSPACES.index(st.session_state.get("active_workspace", "Generate Audio")) if st.session_state.get("active_workspace", "Generate Audio") in WORKSPACES else 0,
+        key="active_workspace",
     )
-    full_speed = st.checkbox("Generate full speed-increase drill", value=True)
-    targeted_terms = st.checkbox("Generate targeted hard-terms drill", value=False)
-    inline_cues = st.checkbox("Generate inline term-cue drill", value=False)
-    combined_all = st.checkbox("Generate combined audio from all script outputs", value=False)
-    skip_existing = st.checkbox("Skip existing up-to-date MP3s", value=True)
-    verify_voices = st.checkbox("Verify Edge TTS voices", value=True)
-
-    st.subheader("Consecutive mode timing")
-    consecutive_ratio = st.number_input("Pause ratio", min_value=0.1, max_value=5.0, value=1.35, step=0.05)
-    consecutive_min = st.number_input("Minimum pause", min_value=0.0, max_value=60.0, value=3.0, step=0.5)
-    consecutive_max = st.number_input("Maximum pause", min_value=0.5, max_value=120.0, value=14.0, step=0.5)
-    consecutive_gap = st.number_input("Segment gap", min_value=0.0, max_value=20.0, value=1.8, step=0.1)
-
-    st.subheader("Source-only timing")
-    source_only_gap = st.number_input(
-        "Source-only same-speaker gap",
-        min_value=0.0,
-        max_value=10.0,
-        value=0.75,
-        step=0.05,
-        help="Pause between source-only chunks when the speaker does not change.",
-    )
-    source_only_speaker_gap = st.number_input(
-        "Source-only speaker-change gap",
-        min_value=0.0,
-        max_value=10.0,
-        value=1.35,
-        step=0.05,
-        help="Slightly longer natural pause when the JSON speaker changes, such as Judge to attorney.",
-    )
-    source_only_merge_same_speaker = st.checkbox(
-        "Merge adjacent same-speaker source chunks",
-        value=True,
-        help="For source-only output, combines adjacent JSON segments when the same speaker continues in the same source language with the same voice. This removes unnatural pauses caused only by JSON chunking.",
-    )
-    source_only_max_merged_chars = st.number_input(
-        "Max merged source-only block size",
-        min_value=500,
-        max_value=8000,
-        value=2800,
-        step=100,
-        help="Safety limit for one merged TTS block. Larger values create longer same-speaker monologues; smaller values create more continuation breaks.",
-    )
-    source_only_continuation_gap = st.number_input(
-        "Source-only continuation gap",
-        min_value=0.0,
-        max_value=3.0,
-        value=0.18,
-        step=0.01,
-        help="Tiny pause if a same-speaker block must be split because it exceeds the max merged size.",
-    )
-
-    st.subheader("Interactive practice audio")
-    practice_audio_enabled = st.checkbox("Enable practice audio", value=True)
-    practice_audio_autoplay_source = st.checkbox("Auto-play source audio when segment loads", value=True)
-    practice_audio_play_correction = st.checkbox("Play correction audio when revealing target", value=True)
-    practice_audio_show_replay = st.checkbox("Show replay audio controls", value=True)
-    practice_audio_use_profile = st.checkbox("Use JSON audio_profile speaker voices", value=True)
-    audio_only_source_mode = st.checkbox("Consecutive audio-only source mode", value=False)
-    consecutive_playback_speed = st.selectbox(
-        "Consecutive playback speed",
-        [0.85, 1.0, 1.10, 1.20, 1.30, 1.40, 1.50],
-        index=1,
-        format_func=lambda x: f"{x:.2f}x",
-        key="consecutive_playback_speed",
-        help="Applies to both the source audio and the revealed correction audio in Consecutive Practice.",
-    )
-    practice_audio_cache_dir = Path(st.text_input("Practice audio cache folder", value=str((RUNTIME_CACHE_DIR / "practice_audio_cache").resolve()))).expanduser()
-
 
     st.divider()
-    st.header("Study progress")
-    persistent_log_path = Path(st.text_input("Practice history CSV", value=str(DEFAULT_PRACTICE_LOG_PATH.resolve()))).expanduser()
-    auto_save_practice_log = st.checkbox("Auto-save scored segments to study history", value=True)
-    simultaneous_log_path = Path(st.text_input("Simultaneous practice history CSV", value=str(DEFAULT_SIMULTANEOUS_LOG_PATH.resolve()))).expanduser()
-    auto_save_simultaneous_log = st.checkbox("Auto-save simultaneous practice attempts", value=True)
-    term_review_log_path = Path(st.text_input("Term review history CSV", value=str(DEFAULT_TERM_REVIEW_LOG_PATH.resolve()))).expanduser()
-    term_srs_state_path = Path(st.text_input("Term SRS state CSV", value=str(DEFAULT_TERM_SRS_STATE_PATH.resolve()))).expanduser()
-    drill_studio_log_path = Path(st.text_input("Drill Studio history CSV", value=str(DEFAULT_DRILL_STUDIO_LOG_PATH.resolve()))).expanduser()
-    auto_save_term_review_log = st.checkbox("Auto-save term review scores", value=True)
+    st.header("Settings")
 
-    st.subheader("Spoken term review audio")
-    term_audio_enabled = st.checkbox("Enable term review audio", value=True)
-    term_audio_autoplay_prompt = st.checkbox("Auto-play prompt term", value=True)
-    term_audio_play_answer_on_reveal = st.checkbox("Play answer audio when revealing target", value=True)
-    term_audio_show_replay = st.checkbox("Show term replay audio controls", value=True)
-    term_audio_only_prompt = st.checkbox("Audio-only prompt mode", value=False)
-    term_audio_cache_dir = Path(st.text_input("Term audio cache folder", value=str((RUNTIME_CACHE_DIR / "term_audio_cache").resolve()))).expanduser()
+    with st.expander("App paths", expanded=False):
+        generator_path = Path(st.text_input("Generator script path", value=str(DEFAULT_GENERATOR_PATH))).expanduser()
+        output_dir = Path(st.text_input("Output folder", value=str((APP_DIR / "audio_output").resolve()))).expanduser()
 
-    show_history_preview_rows = st.number_input("History rows to preview", min_value=10, max_value=1000, value=100, step=10)
+    if selected_workspace == "Generate Audio":
+        st.caption("Audio generation settings")
+        with st.expander("Recommended audio options", expanded=True):
+            speed_mode = st.selectbox("Voice speed", ["learning", "normal", "fast"], index=0)
+            include_flashcards = st.checkbox("Include term flashcards", value=True)
+            split_flashcards = st.checkbox("Split flashcards and script", value=True)
+            source_only_mode = st.checkbox(
+                "Create source-only practice audio",
+                value=True,
+                help="Exports <script_id>_source_only.mp3 with only the original/source language side, preserving JSON speaker voices.",
+            )
+            consecutive_mode = st.checkbox("Create consecutive-mode audio", value=True)
 
-tab_generate, tab_practice, tab_simul, tab_exam, tab_drills, tab_history, tab_terms = st.tabs(["Generate outputs", "Consecutive practice", "Simultaneous practice", "Exam mode", "Drill Studio", "Study history", "Term review"])
+        with st.expander("Output options", expanded=False):
+            full_speed = st.checkbox("Generate full speed-increase drill", value=True)
+            targeted_terms = st.checkbox("Generate targeted hard-terms drill", value=False)
+            inline_cues = st.checkbox("Generate inline term-cue drill", value=False)
+            combined_all = st.checkbox("Generate combined audio from all script outputs", value=False)
+            skip_existing = st.checkbox("Skip existing up-to-date MP3s", value=True)
+            verify_voices = st.checkbox("Verify Edge TTS voices", value=True)
 
-with tab_generate:
-    st.subheader("1. Choose source JSON files")
+        with st.expander("Consecutive timing", expanded=False):
+            consecutive_ratio = st.number_input("Pause ratio", min_value=0.1, max_value=5.0, value=1.35, step=0.05)
+            consecutive_min = st.number_input("Minimum pause", min_value=0.0, max_value=60.0, value=3.0, step=0.5)
+            consecutive_max = st.number_input("Maximum pause", min_value=0.5, max_value=120.0, value=14.0, step=0.5)
+            consecutive_gap = st.number_input("Segment gap", min_value=0.0, max_value=20.0, value=1.8, step=0.1)
+
+        with st.expander("Source-only timing", expanded=False):
+            source_only_gap = st.number_input("Same-speaker gap", min_value=0.0, max_value=10.0, value=0.75, step=0.05)
+            source_only_speaker_gap = st.number_input("Speaker-change gap", min_value=0.0, max_value=10.0, value=1.35, step=0.05)
+            source_only_merge_same_speaker = st.checkbox("Merge adjacent same-speaker chunks", value=True)
+            source_only_max_merged_chars = st.number_input("Max merged block size", min_value=500, max_value=8000, value=2800, step=100)
+            source_only_continuation_gap = st.number_input("Continuation gap", min_value=0.0, max_value=3.0, value=0.18, step=0.01)
+
+    elif selected_workspace == "Consecutive Practice":
+        st.caption("Consecutive practice settings")
+        with st.expander("Practice audio", expanded=True):
+            practice_audio_enabled = st.checkbox("Enable practice audio", value=True)
+            practice_audio_autoplay_source = st.checkbox("Auto-play source audio when segment loads", value=True)
+            practice_audio_play_correction = st.checkbox("Play correction audio when revealing target", value=True)
+            practice_audio_show_replay = st.checkbox("Show replay audio controls", value=True)
+            practice_audio_use_profile = st.checkbox("Use JSON speaker voices", value=True)
+            audio_only_source_mode = st.checkbox("Audio-only source mode", value=False)
+            consecutive_playback_speed = st.selectbox(
+                "Playback speed",
+                [0.85, 1.0, 1.10, 1.20, 1.30, 1.40, 1.50],
+                index=1,
+                format_func=lambda x: f"{x:.2f}x",
+                key="consecutive_playback_speed",
+            )
+            practice_audio_cache_dir = Path(st.text_input("Practice audio cache folder", value=str((APP_DIR / "practice_audio_cache").resolve()))).expanduser()
+
+        with st.expander("Progress and history", expanded=False):
+            persistent_log_path = Path(st.text_input("Practice history CSV", value=str(DEFAULT_PRACTICE_LOG_PATH.resolve()))).expanduser()
+            auto_save_practice_log = False
+            st.caption("Self-score logging is disabled. Use Exam Mode AI evaluation for tracked performance.")
+
+    elif selected_workspace == "Simultaneous Practice":
+        st.caption("Simultaneous practice settings")
+        with st.expander("Progress and history", expanded=True):
+            simultaneous_log_path = Path(st.text_input("Simultaneous history CSV", value=str(DEFAULT_SIMULTANEOUS_LOG_PATH.resolve()))).expanduser()
+            auto_save_simultaneous_log = st.checkbox("Auto-save simultaneous attempts", value=True)
+
+    elif selected_workspace == "Exam Mode":
+        st.caption("Exam Mode settings")
+        with st.expander("Exam folders", expanded=True):
+            output_dir = Path(st.text_input("Exam output folder", value=str((APP_DIR / "audio_output").resolve()))).expanduser()
+            exam_evaluation_log_path = Path(st.text_input("AI evaluation history CSV", value=str(DEFAULT_EXAM_EVALUATION_LOG_PATH.resolve()))).expanduser()
+            auto_save_exam_evaluation_log = st.checkbox("Track AI evaluation results", value=True)
+
+        with st.expander("Playback & recording", expanded=True):
+            use_profile_exam = st.checkbox("Use JSON speaker voices", value=True, key="exam_use_profile")
+            exam_speed_mode = st.selectbox("TTS voice speed", ["learning", "normal", "fast"], index=1, key="exam_tts_speed")
+            exam_playback_speed = st.selectbox(
+                "Playback speed",
+                [0.85, 1.00, 1.10, 1.20, 1.30, 1.40, 1.50],
+                index=1,
+                format_func=lambda x: f"{x:.2f}x",
+                key="exam_playback_speed",
+            )
+            show_exam_reference = st.checkbox("Allow reference after recording", value=True, key="exam_show_reference")
+
+        with st.expander("Transcription", expanded=True):
+            enable_exam_transcription = st.checkbox("Enable transcription for saved exam recordings", value=False, key="exam_enable_transcription")
+            transcript_engine = st.selectbox("Transcription engine", LOCAL_WHISPER_ENGINES, index=0, key="exam_transcript_engine")
+            st.caption("Web version uses OpenAI transcription. Local whisper.cpp remains available only in the Mac app.")
+            transcript_model = st.selectbox("OpenAI model", OPENAI_TRANSCRIBE_MODELS, index=0, key="exam_transcript_model")
+            transcript_language_hint_label = st.selectbox("Language hint", ["Auto", "English", "Spanish"], index=0, key="exam_transcript_language_hint")
+            manual_openai_key = st.text_input("OpenAI API key", type="password", key="exam_openai_api_key", help="Optional. Otherwise the app uses OPENAI_API_KEY from your environment.")
+            if transcript_engine == "Local whisper.cpp":
+                local_whisper_binary_path = st.text_input("whisper.cpp binary path", value=str(DEFAULT_WHISPER_CPP_BINARY), key="exam_local_whisper_binary")
+                local_whisper_model_path = st.text_input("whisper.cpp model path", value=str(DEFAULT_WHISPER_CPP_MODEL), key="exam_local_whisper_model")
+                detected_binary = find_local_whisper_binary(local_whisper_binary_path)
+                if detected_binary and Path(local_whisper_model_path).expanduser().exists():
+                    st.success(f"Local Whisper ready: {detected_binary.name} + {Path(local_whisper_model_path).expanduser().name}")
+                else:
+                    st.info("Set the whisper.cpp binary/model paths, or switch back to OpenAI API.")
+                with st.expander("Local Whisper setup help", expanded=False):
+                    st.code("""cd /Users/calebcorbin/Documents/interpreter_project
+git clone https://github.com/ggml-org/whisper.cpp.git
+cd whisper.cpp
+make
+
+# Recommended local model for this app:
+bash ./models/download-ggml-model.sh large-v3-turbo
+
+# Then use these paths in the app:
+# whisper.cpp/build/bin/whisper-cli
+# whisper.cpp/models/ggml-large-v3-turbo.bin""", language="bash")
+                    st.caption("Recommended local model: Large-V3 Turbo. On some whisper.cpp versions the binary may be build/bin/main instead of build/bin/whisper-cli. The app checks both, and also checks PATH.")
+
+        with st.expander("Timestamp alignment", expanded=False):
+            timestamp_lag_seconds = st.number_input("Estimated simultaneous lag", min_value=0.0, max_value=15.0, value=3.0, step=0.5, key="exam_timestamp_lag_seconds")
+            timestamp_padding_seconds = st.number_input("Window padding", min_value=0.0, max_value=8.0, value=1.5, step=0.5, key="exam_timestamp_padding_seconds")
+            timestamp_exact_timing = st.checkbox("Use exact source chunk timing map", value=True, key="exam_timestamp_exact_timing")
+
+        with st.expander("Scoring & custom practice JSON", expanded=True):
+            drill_target_wpm = st.number_input("Target WPM", min_value=80, max_value=220, value=140, step=5, key="drill_target_wpm")
+            max_drill_count = st.number_input("Max remedial sections", min_value=5, max_value=40, value=18, step=1, key="max_personalized_drills")
+            rubric_ai_model = st.selectbox("Rubric AI model", OPENAI_AI_FEEDBACK_MODELS, index=0 if OPENAI_AI_FEEDBACK_MODELS else 0, key="exam_rubric_ai_model")
+            st.caption("Scoring uses source + reference + your transcript + WPM + project preferences. Original JSON terms_used is not used for grading.")
+
+    elif selected_workspace == "Drill Studio":
+        st.caption("Drill Studio settings")
+        with st.expander("Session history", expanded=True):
+            drill_studio_log_path = Path(st.text_input("Drill Studio history CSV", value=str(DEFAULT_DRILL_STUDIO_LOG_PATH.resolve()))).expanduser()
+        with st.expander("Audio playback", expanded=False):
+            practice_audio_enabled = st.checkbox("Enable drill audio", value=True)
+            practice_audio_show_replay = st.checkbox("Show replay controls", value=True)
+            practice_audio_cache_dir = Path(st.text_input("Practice audio cache folder", value=str((APP_DIR / "practice_audio_cache").resolve()))).expanduser()
+
+    elif selected_workspace == "Study History":
+        st.caption("History settings")
+        with st.expander("History files", expanded=True):
+            persistent_log_path = Path(st.text_input("Consecutive history CSV", value=str(DEFAULT_PRACTICE_LOG_PATH.resolve()))).expanduser()
+            simultaneous_log_path = Path(st.text_input("Simultaneous history CSV", value=str(DEFAULT_SIMULTANEOUS_LOG_PATH.resolve()))).expanduser()
+            term_review_log_path = Path(st.text_input("Term review history CSV", value=str(DEFAULT_TERM_REVIEW_LOG_PATH.resolve()))).expanduser()
+            drill_studio_log_path = Path(st.text_input("Drill Studio history CSV", value=str(DEFAULT_DRILL_STUDIO_LOG_PATH.resolve()))).expanduser()
+            exam_evaluation_log_path = Path(st.text_input("AI exam evaluation CSV", value=str(DEFAULT_EXAM_EVALUATION_LOG_PATH.resolve()))).expanduser()
+            show_history_preview_rows = st.number_input("History rows to preview", min_value=10, max_value=1000, value=100, step=10)
+
+    elif selected_workspace == "Term Review":
+        st.caption("Term review settings")
+        with st.expander("Progress and SRS", expanded=True):
+            term_review_log_path = Path(st.text_input("Term review history CSV", value=str(DEFAULT_TERM_REVIEW_LOG_PATH.resolve()))).expanduser()
+            term_srs_state_path = Path(st.text_input("Term SRS state CSV", value=str(DEFAULT_TERM_SRS_STATE_PATH.resolve()))).expanduser()
+            auto_save_term_review_log = st.checkbox("Auto-save term review scores", value=True)
+        with st.expander("Term audio", expanded=False):
+            term_audio_enabled = st.checkbox("Enable term review audio", value=True)
+            term_audio_autoplay_prompt = st.checkbox("Auto-play prompt term", value=True)
+            term_audio_play_answer_on_reveal = st.checkbox("Play answer audio when revealing target", value=True)
+            term_audio_show_replay = st.checkbox("Show term replay audio controls", value=True)
+            term_audio_only_prompt = st.checkbox("Audio-only prompt mode", value=False)
+            term_audio_cache_dir = Path(st.text_input("Term audio cache folder", value=str((APP_DIR / "term_audio_cache").resolve()))).expanduser()
+
+    with st.expander("Keyboard shortcuts", expanded=False):
+        st.markdown("← previous · → next. Shortcuts pause while typing in text boxes.")
+
+if selected_workspace == "Generate Audio":
+    st.subheader("Generate Audio")
+    render_context_action_panel("Generate Audio — work panel", ["Choose JSON", "Review settings", "Generate files", "Download outputs"], hint="Use the main page for work; open sidebar expanders only when you need advanced defaults or file paths.")
+    show_guided_steps([
+        ("1", "Choose scripts", "Upload one or more JSON practice scripts, or select them from a local folder."),
+        ("2", "Check settings", "Use recommended defaults, or open sidebar advanced settings when needed."),
+        ("3", "Generate", "Create flashcards, source-only audio, full scripts, and practice files."),
+    ])
+    st.subheader("Choose source JSON files")
     source_mode = st.radio("Source", ["Upload JSON file(s)", "Use a local folder path"], horizontal=True)
 
     loaded_files: list[tuple[str, bytes]] = []
@@ -6171,9 +7126,14 @@ with tab_generate:
     else:
         st.info("Choose one or more JSON files to preview settings and run the generator.")
 
-with tab_practice:
-    st.subheader("Interactive consecutive practice")
-    st.caption("Practice segment by segment: read/listen to the source side, interpret aloud, reveal the correction, score yourself, and automatically save long-term progress.")
+if selected_workspace == "Consecutive Practice":
+    st.subheader("Consecutive Practice")
+    show_guided_steps([
+        ("1", "Listen/read", "Work through one source segment at a time."),
+        ("2", "Interpret", "Say your interpretation aloud before revealing the reference."),
+        ("3", "Score", "Mark the attempt and save notes for long-term review."),
+    ])
+    st.caption("Practice segment by segment: listen to the source side, interpret aloud, and reveal the correction. Performance tracking now happens in Exam Mode AI evaluation.")
     st.caption(f"Current practice session: `{st.session_state.get('practice_session_id', 'not started')}`")
 
     with st.expander("Consecutive audio controls", expanded=True):
@@ -6392,105 +7352,33 @@ with tab_practice:
                         except Exception as exc:
                             st.warning(f"Could not prepare correction audio: {exc}")
 
-                    st.markdown("#### Self-score")
-                    score = st.radio(
-                        "Score",
-                        options=[3, 2, 1, 0],
-                        format_func=lambda x: {
-                            3: "3 — Accurate",
-                            2: "2 — Minor issue",
-                            1: "1 — Major issue",
-                            0: "0 — Missed / could not complete",
-                        }[x],
-                        horizontal=True,
-                        key=f"score_{script_id}_{idx}_{seg.get('_segment_index')}",
-                    )
-                    error_tags = st.multiselect("Error tags", ERROR_TAGS, key=f"tags_{script_id}_{idx}_{seg.get('_segment_index')}")
-                    notes = st.text_area("Notes", key=f"notes_{script_id}_{idx}_{seg.get('_segment_index')}", height=90)
-
-                    col_prev, col_save, col_next = st.columns([1, 2, 1])
-                    with col_prev:
+                    st.markdown("#### Continue")
+                    nav_cols = st.columns([1, 1, 1])
+                    with nav_cols[0]:
                         if st.button("← Previous", disabled=idx == 0):
                             st.session_state.practice_idx -= 1
                             st.session_state.practice_revealed = False
                             st.rerun()
-                    with col_save:
-                        if st.button("Save score and next", type="primary"):
-                            log_row = {
-                                "timestamp": datetime.now().isoformat(timespec="seconds"),
-                                "session_id": st.session_state.get("practice_session_id", ""),
-                                "script_id": script_id,
-                                "title": title,
-                                "practice_direction": direction,
-                                "practice_set_size": len(segments),
-                                "segment_index": seg.get("_segment_index"),
-                                "speaker": seg.get("speaker", ""),
-                                "segment_type": seg.get("segment_type", ""),
-                                "source_language": source_lang,
-                                "target_language": target_lang,
-                                "score": score,
-                                "error_tags": "; ".join(error_tags),
-                                "notes": notes,
-                                "source_text": source_text,
-                                "target_text": target_text,
-                            }
-                            st.session_state.practice_log.append(log_row)
-                            if auto_save_practice_log:
-                                try:
-                                    append_persistent_practice_log(persistent_log_path, log_row)
-                                except Exception as exc:
-                                    st.warning(f"Could not auto-save to study history: {exc}")
-                            if idx < len(segments) - 1:
-                                st.session_state.practice_idx += 1
-                                st.session_state.practice_revealed = False
-                            st.rerun()
-                    with col_next:
-                        if st.button("Skip →", disabled=idx >= len(segments) - 1):
+                    with nav_cols[1]:
+                        if st.button("Next segment →", type="primary", disabled=idx >= len(segments) - 1):
                             st.session_state.practice_idx += 1
                             st.session_state.practice_revealed = False
                             st.rerun()
-                else:
-                    nav1, nav2 = st.columns([1, 1])
-                    with nav1:
-                        if st.button("← Previous segment", disabled=idx == 0):
-                            st.session_state.practice_idx -= 1
-                            st.session_state.practice_revealed = False
-                            st.rerun()
-                    with nav2:
-                        if st.button("Skip segment →", disabled=idx >= len(segments) - 1):
-                            st.session_state.practice_idx += 1
-                            st.session_state.practice_revealed = False
-                            st.rerun()
+                    with nav_cols[2]:
+                        st.caption("Self-scoring was removed. Use Exam Mode AI evaluation for tracked performance.")
 
-                st.divider()
-                st.markdown("### Session log")
-                log_rows = st.session_state.practice_log
-                if log_rows:
-                    st.dataframe(log_rows, use_container_width=True, hide_index=True)
-                    scores = [int(r.get("score", 0)) for r in log_rows if str(r.get("score", "")).isdigit()]
-                    if scores:
-                        st.write(f"Average score: **{sum(scores) / len(scores):.2f} / 3** across **{len(scores)} saved segment(s)**.")
-                    if auto_save_practice_log:
-                        st.caption(f"Scored segments are being saved to: `{persistent_log_path}`")
-                    csv_text = practice_log_to_csv(log_rows)
-                    st.download_button(
-                        "Download session log CSV",
-                        data=csv_text.encode("utf-8"),
-                        file_name=f"{script_id}_practice_log.csv",
-                        mime="text/csv",
-                    )
-                    if st.button("Clear session log"):
-                        st.session_state.practice_log = []
-                        st.rerun()
-                else:
-                    st.info("No scores saved yet in this app session.")
     else:
         st.info("Choose a JSON file to start interactive consecutive practice.")
 
 
-with tab_simul:
-    st.subheader("Simultaneous practice")
-    st.caption("Listen to a continuous source passage, interpret aloud in real time, reveal the reference interpretation, then score and save your attempt.")
+if selected_workspace == "Simultaneous Practice":
+    st.subheader("Simultaneous Practice")
+    show_guided_steps([
+        ("1", "Play source", "Listen to a continuous source passage."),
+        ("2", "Interpret live", "Interpret aloud in real time without pausing."),
+        ("3", "Review", "Reveal the reference and continue to the next chunk."),
+    ])
+    st.caption("Listen to a continuous source passage, interpret aloud in real time, then reveal the reference interpretation for review.")
     st.caption(f"Current simultaneous session: `{st.session_state.get('simultaneous_session_id', 'not started')}`")
 
     if "simultaneous_log" not in st.session_state:
@@ -6750,63 +7638,20 @@ with tab_simul:
                     except Exception as exc:
                         st.warning(f"Could not prepare reference audio: {exc}")
 
-                st.markdown("#### Self-score")
-                sim_score = st.radio(
-                    "Score",
-                    options=[3, 2, 1, 0],
-                    format_func=lambda x: {3: "3 — Strong", 2: "2 — Usable with minor issues", 1: "1 — Major issues", 0: "0 — Lost / could not complete"}[x],
-                    horizontal=True,
-                    key=f"sim_score_{chunk_signature}",
-                )
-                sim_tags = st.multiselect("Simultaneous issue tags", SIMULTANEOUS_ERROR_TAGS, key=f"sim_tags_{chunk_signature}")
-                sim_notes = st.text_area("Notes", key=f"sim_notes_{chunk_signature}", height=90)
-
-                nav_cols = st.columns([1, 2, 1])
+                st.markdown("#### Continue")
+                nav_cols = st.columns([1, 1, 1])
                 with nav_cols[0]:
                     if st.button("← Previous chunk", disabled=sim_idx == 0, key=f"sim_prev_{chunk_signature}"):
                         st.session_state.simultaneous_idx -= 1
                         st.session_state.simultaneous_revealed = False
                         st.rerun()
                 with nav_cols[1]:
-                    if st.button("Save score and next chunk", type="primary", key=f"sim_save_{chunk_signature}"):
-                        sim_row = {
-                            "timestamp": datetime.now().isoformat(timespec="seconds"),
-                            "session_id": st.session_state.get("simultaneous_session_id", ""),
-                            "script_id": sim_script_id,
-                            "title": sim_title,
-                            "source_file": sim_name,
-                            "practice_mode": sim_mode,
-                            "training_mode": sim_training_mode,
-                            "lag_seconds": sim_lag_seconds if sim_training_mode in {"Lag trainer", "Shadow first, then interpret"} else "",
-                            "playback_speed": sim_playback_speed,
-                            "repeat_loop": sim_repeat_loop,
-                            "chunk_index": chunk.get("chunk_index", sim_idx + 1),
-                            "chunk_label": chunk.get("chunk_label", ""),
-                            "source_language": source_lang,
-                            "target_language": target_lang,
-                            "speaker": chunk.get("speaker", ""),
-                            "segment_type": chunk.get("segment_type", ""),
-                            "score": sim_score,
-                            "error_tags": "; ".join(sim_tags),
-                            "notes": sim_notes,
-                            "source_text": source_text,
-                            "target_text": target_text,
-                        }
-                        st.session_state.simultaneous_log.append(sim_row)
-                        if auto_save_simultaneous_log:
-                            try:
-                                append_simultaneous_log(simultaneous_log_path, sim_row)
-                            except Exception as exc:
-                                st.warning(f"Could not auto-save simultaneous practice: {exc}")
-                        if sim_idx < len(chunks) - 1:
-                            st.session_state.simultaneous_idx += 1
-                            st.session_state.simultaneous_revealed = False
-                        st.rerun()
-                with nav_cols[2]:
-                    if st.button("Skip chunk →", disabled=sim_idx >= len(chunks) - 1, key=f"sim_skip_{chunk_signature}"):
+                    if st.button("Next chunk →", type="primary", disabled=sim_idx >= len(chunks) - 1, key=f"sim_next_{chunk_signature}"):
                         st.session_state.simultaneous_idx += 1
                         st.session_state.simultaneous_revealed = False
                         st.rerun()
+                with nav_cols[2]:
+                    st.caption("Self-scoring was removed. Use Exam Mode AI evaluation for tracked performance.")
 
             if not st.session_state.simultaneous_revealed:
                 nav1, nav2 = st.columns(2)
@@ -6821,54 +7666,22 @@ with tab_simul:
                         st.session_state.simultaneous_revealed = False
                         st.rerun()
 
-            st.divider()
-            st.markdown("### Simultaneous session log")
-            sim_session_rows = st.session_state.get("simultaneous_log", [])
-            if sim_session_rows:
-                st.dataframe(sim_session_rows, use_container_width=True, hide_index=True)
-                sim_scores = [int(r.get("score", 0)) for r in sim_session_rows if str(r.get("score", "")).isdigit()]
-                if sim_scores:
-                    st.write(f"Average simultaneous score: **{sum(sim_scores) / len(sim_scores):.2f} / 3** across **{len(sim_scores)} saved attempt(s)**.")
-                if auto_save_simultaneous_log:
-                    st.caption(f"Simultaneous attempts are being saved to: `{simultaneous_log_path}`")
-                st.download_button(
-                    "Download simultaneous session CSV",
-                    data=simultaneous_log_to_csv(sim_session_rows).encode("utf-8"),
-                    file_name=f"{sim_script_id}_simultaneous_session_log.csv",
-                    mime="text/csv",
-                )
-                if st.button("Clear simultaneous session log", key="sim_clear_session"):
-                    st.session_state.simultaneous_log = []
-                    st.rerun()
-            else:
-                st.info("No simultaneous attempts saved in this app session yet.")
 
-            with st.expander("Persistent simultaneous history", expanded=False):
-                sim_history_rows = load_simultaneous_log(simultaneous_log_path)
-                sim_history_df = simultaneous_rows_to_dataframe(sim_history_rows)
-                st.write(f"Persistent simultaneous log file: `{simultaneous_log_path}`")
-                if sim_history_df.empty:
-                    st.info("No persistent simultaneous practice history yet.")
-                else:
-                    st.metric("Saved simultaneous attempts", len(sim_history_df))
-                    valid_sim_scores = sim_history_df["score_numeric"].dropna()
-                    if not valid_sim_scores.empty:
-                        st.metric("Average saved simultaneous score", f"{valid_sim_scores.mean():.2f} / 3")
-                    st.dataframe(sim_history_df.tail(int(show_history_preview_rows)), use_container_width=True, hide_index=True)
-                    st.download_button(
-                        "Download full simultaneous history CSV",
-                        data=simultaneous_log_to_csv(sim_history_rows).encode("utf-8"),
-                        file_name="simultaneous_practice_log.csv",
-                        mime="text/csv",
-                    )
     else:
         st.info("Choose a JSON file to start simultaneous practice.")
 
 
 
-with tab_exam:
-    st.subheader("Exam mode")
-    st.caption("Source-only playback, microphone recording, transcription, transcript review, rubric score, and remedial practice JSON.")
+if selected_workspace == "Exam Mode":
+    st.subheader("Exam Mode")
+    render_context_action_panel("Exam Mode — work panel", ["Choose script", "Play + record", "Transcribe", "Score", "Export bundle"], hint="Primary work controls appear in the tab. Advanced audio, transcription, and export options stay collapsed until needed.")
+    show_guided_steps([
+        ("1", "Play source", "Listen to the source audio and interpret as you would on an exam."),
+        ("2", "Record attempt", "Save your interpretation before revealing or reviewing the reference."),
+        ("3", "Transcribe", "Turn your recording into text with Whisper for transcript review."),
+        ("4", "Score attempt", "Create a rubric summary and custom remedial practice JSON."),
+    ])
+    st.caption("Exam practice, transcription, transcript review, rubric scoring, and custom remedial drills.")
 
     exam_mode = st.radio("Exam type", ["Consecutive", "Simultaneous"], horizontal=True, key="exam_mode_choice")
     exam_source = st.radio("Exam JSON source", ["Upload JSON file", "Use selected files from Generate tab", "Use local file path"], horizontal=True, key="exam_source_radio")
@@ -6907,42 +7720,42 @@ with tab_exam:
         title = str(exam_payload.get("title") or "")
         session_id = initialize_exam_session(script_id, exam_mode)
 
-        exam_output_dir = Path(st.text_input("Exam output folder", value=str((DEFAULT_EXAM_OUTPUT_DIR / sanitize_filename_part(script_id)).resolve()), key="exam_output_dir")).expanduser()
+        render_current_script_summary(exam_payload, script_id, exam_mode, session_id)
+
+        exam_output_dir = Path(output_dir / sanitize_filename_part(script_id)).expanduser()
+        with st.expander("Exam settings summary", expanded=False):
+            st.caption("Most Exam Mode settings now live in the dynamic left sidebar.")
+            st.markdown(compact_metadata_row([
+                f"Output: {exam_output_dir}",
+                f"TTS speed: {exam_speed_mode}",
+                f"Playback: {float(exam_playback_speed):.2f}x",
+                "Speaker voices" if use_profile_exam else "Default voices",
+            ]), unsafe_allow_html=True)
         exam_cache_dir = exam_output_dir / "source_audio_cache"
         response_dir = exam_output_dir / "responses"
         combined_dir = exam_output_dir / "combined"
         exam_output_dir.mkdir(parents=True, exist_ok=True)
 
-        left, right = st.columns([2, 1])
-        with left:
-            st.markdown(f"**{script_id}**")
-            if title:
-                st.caption(title)
-        with right:
-            st.caption(f"Session: `{session_id}`")
-
-        use_profile_exam = st.checkbox("Use JSON audio_profile speaker voices", value=True, key="exam_use_profile")
-        exam_speed_mode = st.selectbox("TTS voice speed", ["learning", "normal", "fast"], index=1, key="exam_tts_speed")
-        exam_playback_speed = st.selectbox(
-            "Playback speed",
-            [0.85, 1.00, 1.10, 1.20, 1.30, 1.40, 1.50],
-            index=1,
-            format_func=lambda x: f"{x:.2f}x",
-            key="exam_playback_speed",
+        render_context_action_panel(
+            "Current exam status",
+            [f"Script: {script_id}", f"Mode: {exam_mode}"],
+            statuses=[
+                ("Recording", bool(st.session_state.get("exam_rows"))),
+                ("Transcript", bool(st.session_state.get("exam_transcript_rows"))),
+                ("Score", bool(st.session_state.get("exam_last_rubric_score_txt"))),
+                ("Drill JSON", bool(st.session_state.get("exam_last_remedial_drill_script_json"))),
+            ],
+            hint="The main work sequence is record → transcribe → score → practice in Drill Studio.",
         )
-        show_exam_reference = st.checkbox("Allow reference text/audio after recording", value=True, key="exam_show_reference")
 
-        with st.expander("Transcription settings", expanded=False):
-            enable_exam_transcription = st.checkbox("Enable OpenAI transcription for saved exam recordings", value=False, key="exam_enable_transcription")
-            transcript_model = st.selectbox("Basic transcription model", OPENAI_TRANSCRIBE_MODELS, index=0, key="exam_transcript_model")
-            transcript_language_hint_label = st.selectbox("Language hint", ["Auto", "English", "Spanish"], index=0, key="exam_transcript_language_hint")
-            manual_openai_key = st.text_input("OpenAI API key (optional; otherwise uses OPENAI_API_KEY)", type="password", key="exam_openai_api_key")
-            st.caption("The key is used only for this Streamlit session. You can also set OPENAI_API_KEY as a Streamlit secret or environment variable.")
-            st.markdown("**Timestamp alignment**")
-            timestamp_lag_seconds = st.number_input("Estimated simultaneous lag in seconds", min_value=0.0, max_value=15.0, value=3.0, step=0.5, key="exam_timestamp_lag_seconds")
-            timestamp_padding_seconds = st.number_input("Timestamp window padding in seconds", min_value=0.0, max_value=8.0, value=1.5, step=0.5, key="exam_timestamp_padding_seconds")
-            timestamp_exact_timing = st.checkbox("Use exact source chunk timing map", value=True, key="exam_timestamp_exact_timing")
-            st.caption("Timestamp-anchored alignment uses whisper-1 timestamps. The exact timing map generates/reuses per-chunk source audio, measures each chunk, scales to the full source MP3, adjusts for playback speed, then applies the lag setting.")
+        with st.expander("Transcription setup summary", expanded=False):
+            st.caption("Transcription, timestamp, and scoring settings now live in the dynamic left sidebar for Exam Mode.")
+            st.markdown(compact_metadata_row([
+                f"Engine: {transcript_engine}",
+                f"Model: {transcript_model if transcript_engine == 'OpenAI API' else Path(local_whisper_model_path).name}",
+                f"Timestamp lag: {timestamp_lag_seconds}s",
+                f"Target WPM: {drill_target_wpm}",
+            ]), unsafe_allow_html=True)
 
         if exam_mode == "Simultaneous":
             chunks = build_simultaneous_chunks(exam_payload, "Full passage", "Source language first")
@@ -7082,28 +7895,102 @@ with tab_exam:
                     st.error(f"Could not prepare source audio: {exc}")
 
                 st.progress((pos + 1) / len(segments), text=f"Segment {pos + 1} of {len(segments)}")
+                render_context_action_panel(
+                    "Consecutive segment work area",
+                    [f"Segment {pos + 1}/{len(segments)}", "Play + record", "Stop/save", "Next segment"],
+                    statuses=[("Saved", str(json_idx) in st.session_state.get("exam_saved", {}))],
+                    hint="This is the main exam workspace. Use the recorder here; open the details expander only when you need text, notes, or reference.",
+                )
                 st.markdown(compact_metadata_row([
                     f"JSON segment {json_idx}", f"{source_lang[:2].upper()} → {target_lang[:2].upper()}",
                     f"{len(source_text.split())} words", speaker, segment_type
                 ]), unsafe_allow_html=True)
-                render_source_reference_cards(
-                    source_title=f"Source — {source_lang.title()}", source_text=source_text,
-                    target_title=f"Expected target — {target_lang.title()}", target_text=target_text,
-                    source_meta=f"{speaker} · voice: {voice}", target_meta="Hidden during exam",
-                    source_visible=True, target_visible=False,
+                st.markdown("**Play + record**")
+                st.markdown('<div class="compact-work-caption">Enable the microphone once, press Play + record, interpret, then Stop/save. Use ← / → for previous/next segment.</div>', unsafe_allow_html=True)
+
+                use_auto_consecutive_recording = st.toggle(
+                    "Auto-record after source playback",
+                    value=True,
+                    key=f"exam_consec_auto_record_toggle_{session_id}_{json_idx}",
+                    help="Recommended for consecutive exam mode. After microphone permission is granted, the response recording starts automatically when the source segment finishes playing.",
                 )
-                if source_audio.exists():
-                    render_audio_player(source_audio, f"Exam source — {source_lang.title()} — voice: {voice}", autoplay=False, playback_speed=float(exam_playback_speed))
-                    render_wpm_estimate("Exam source", source_text, source_audio, float(exam_playback_speed))
+                response_audio = None
+                notes = ""
+                auto_saved_for_segment = False
 
-                st.markdown("### Record your consecutive interpretation")
-                st.caption("After listening to the source segment, record your interpretation. Save it before moving to the next segment.")
-                response_audio = st.audio_input("Record interpretation for this segment", key=f"exam_consec_audio_{session_id}_{json_idx}")
-                notes = st.text_area("Segment notes", key=f"exam_consec_notes_{session_id}_{json_idx}")
+                if use_auto_consecutive_recording:
+                    auto_payload = render_consecutive_auto_recorder(
+                        source_audio_path=source_audio,
+                        playback_speed=float(exam_playback_speed),
+                        key=f"auto_recorder_{session_id}_{json_idx}_{short_hash(str(source_audio), str(source_audio.stat().st_mtime_ns) if source_audio.exists() else 'missing')}",
+                    )
+                    if isinstance(auto_payload, dict) and auto_payload.get("status") == "saved":
+                        signature = str(auto_payload.get("signature") or "")
+                        state_key = f"exam_auto_record_signature_{session_id}_{json_idx}"
+                        if signature and st.session_state.get(state_key) != signature:
+                            response_base = response_dir / f"{sanitize_filename_part(script_id)}_{session_id}_seg_{json_idx:04d}_auto_response"
+                            saved = save_auto_recording_payload(auto_payload, response_base)
+                            if saved:
+                                st.session_state[state_key] = signature
+                                row = {
+                                    "timestamp": datetime.now().isoformat(timespec="seconds"), "session_id": session_id,
+                                    "script_id": script_id, "title": title, "source_file": exam_name,
+                                    "exam_mode": "Consecutive", "item_index": json_idx,
+                                    "item_label": f"Segment {pos + 1} / JSON segment {json_idx}",
+                                    "source_language": source_lang, "target_language": target_lang,
+                                    "speaker": speaker, "segment_type": segment_type,
+                                    "source_text": source_text, "source_audio": str(source_audio), "response_audio": str(saved),
+                                    "reference_text": target_text, "notes": notes,
+                                    "playback_speed": float(exam_playback_speed), "tts_voice": voice, "tts_rate": rate,
+                                    "recording_method": "auto_after_source_playback",
+                                    **wpm_fields_for_text_audio(source_text, source_audio, float(exam_playback_speed)),
+                                }
+                                st.session_state.exam_saved[str(json_idx)] = row
+                                rows_by_index = {str(r.get("item_index")): r for r in st.session_state.get("exam_rows", [])}
+                                rows_by_index[str(json_idx)] = row
+                                st.session_state.exam_rows = [rows_by_index[k] for k in sorted(rows_by_index, key=lambda x: int(x) if str(x).isdigit() else 999999)]
+                                auto_saved_for_segment = True
+                                st.success(f"Auto-recorded response saved for segment {json_idx}: {saved.name}")
+                            else:
+                                st.warning("The browser recorder returned audio, but the app could not save it. Use the manual recorder below.")
+                        elif signature:
+                            st.caption("Auto-recorded response already saved for this segment.")
+                    with st.expander("Manual recorder fallback", expanded=False):
+                        response_audio = st.audio_input("Record interpretation manually for this segment", key=f"exam_consec_audio_{session_id}_{json_idx}")
+                else:
+                    response_audio = st.audio_input("Record interpretation for this segment", key=f"exam_consec_audio_{session_id}_{json_idx}")
 
-                col_a, col_b, col_c, col_d = st.columns([1.2, 1, 1, 1])
-                with col_a:
-                    if st.button("Save response", key=f"save_consec_{json_idx}", disabled=response_audio is None):
+                saved_count = len(st.session_state.get("exam_saved", {}))
+                st.caption(f"Saved responses: {saved_count} / {len(segments)}")
+
+                nav_top_a, nav_top_b, nav_top_c, nav_top_d = st.columns([1, 1, 1, 2])
+                with nav_top_a:
+                    if st.button("Previous segment", disabled=pos <= 0, key=f"exam_prev_top_{json_idx}"):
+                        st.session_state.exam_index -= 1
+                        st.rerun()
+                with nav_top_b:
+                    if st.button("Next segment", disabled=pos >= max_idx, key=f"exam_next_top_{json_idx}", type="primary"):
+                        st.session_state.exam_index += 1
+                        st.rerun()
+                with nav_top_c:
+                    if show_exam_reference and st.button("Reveal reference", key=f"exam_reveal_ref_top_{json_idx}"):
+                        st.session_state[f"exam_ref_revealed_{json_idx}"] = True
+
+                with st.expander("Segment text, reference, notes, and audio details", expanded=bool(st.session_state.get(f"exam_ref_revealed_{json_idx}", False))):
+                    notes = st.text_area("Segment notes", key=f"exam_consec_notes_{session_id}_{json_idx}")
+                    render_source_reference_cards(
+                        source_title=f"Source — {source_lang.title()}", source_text=source_text,
+                        target_title=f"Expected target — {target_lang.title()}", target_text=target_text,
+                        source_meta=f"{speaker} · voice: {voice}", target_meta="Hidden during exam",
+                        source_visible=True, target_visible=bool(st.session_state.get(f"exam_ref_revealed_{json_idx}", False)),
+                    )
+                    if source_audio.exists():
+                        render_audio_player(source_audio, f"Exam source — {source_lang.title()} — voice: {voice}", autoplay=False, playback_speed=float(exam_playback_speed))
+                        render_wpm_estimate("Exam source", source_text, source_audio, float(exam_playback_speed))
+
+                save_cols = st.columns([1.2, 3])
+                with save_cols[0]:
+                    if st.button("Save manual response", key=f"save_consec_{json_idx}", disabled=response_audio is None):
                         response_path = response_dir / f"{sanitize_filename_part(script_id)}_{session_id}_seg_{json_idx:04d}_response.wav"
                         saved = save_audio_input(response_audio, response_path)
                         if saved:
@@ -7117,6 +8004,7 @@ with tab_exam:
                                 "source_text": source_text, "source_audio": str(source_audio), "response_audio": str(saved),
                                 "reference_text": target_text, "notes": notes,
                                 "playback_speed": float(exam_playback_speed), "tts_voice": voice, "tts_rate": rate,
+                                "recording_method": "manual_streamlit_audio_input",
                                 **wpm_fields_for_text_audio(source_text, source_audio, float(exam_playback_speed)),
                             }
                             st.session_state.exam_saved[str(json_idx)] = row
@@ -7124,26 +8012,6 @@ with tab_exam:
                             rows_by_index[str(json_idx)] = row
                             st.session_state.exam_rows = [rows_by_index[k] for k in sorted(rows_by_index, key=lambda x: int(x) if str(x).isdigit() else 999999)]
                             st.success(f"Saved response for segment {json_idx}.")
-                with col_b:
-                    if st.button("Previous", disabled=pos <= 0, key="exam_prev"):
-                        st.session_state.exam_index -= 1
-                        st.rerun()
-                with col_c:
-                    if st.button("Next", disabled=pos >= max_idx, key="exam_next"):
-                        st.session_state.exam_index += 1
-                        st.rerun()
-                with col_d:
-                    if show_exam_reference and st.button("Reveal reference", key=f"exam_reveal_ref_{json_idx}"):
-                        st.session_state[f"exam_ref_revealed_{json_idx}"] = True
-
-                if show_exam_reference and st.session_state.get(f"exam_ref_revealed_{json_idx}", False):
-                    render_source_reference_cards(
-                        source_title=f"Source — {source_lang.title()}", source_text=source_text,
-                        target_title=f"Reference — {target_lang.title()}", target_text=target_text,
-                        source_meta=f"{speaker}", target_meta="Reference text",
-                        source_visible=True, target_visible=True,
-                    )
-
                 saved_count = len(st.session_state.get("exam_saved", {}))
                 st.caption(f"Saved responses: {saved_count} / {len(segments)}")
 
@@ -7158,29 +8026,35 @@ with tab_exam:
             st.download_button("Download exam log CSV", data=csv_text.encode("utf-8"), file_name=csv_path.name, mime="text/csv")
 
             if enable_exam_transcription:
+                render_context_action_panel("Transcription work area", ["Choose engine in settings", "Transcribe my recording", "Review transcript", "Build alignment"], hint="Use this after at least one response has been saved.")
                 st.markdown("#### Transcription")
-                st.caption("Transcribes saved response recordings only. With whisper-1, the app now saves plain text and timestamp JSON in one pass, then reuses that for structured review and timestamp alignment.")
-                if st.button("Transcribe saved exam recordings", key="transcribe_exam_recordings"):
+                current_engine_label = transcript_source_display_name(transcript_engine, local_whisper_model_path if transcript_engine == "Local whisper.cpp" else transcript_model)
+                st.caption(f"Transcribes saved response recordings only. Current engine: {current_engine_label}.")
+                # Web build uses OpenAI transcription only.
+                if st.button("Transcribe my recording", key="transcribe_exam_recordings"):
                     try:
-                        api_key = get_openai_api_key(manual_openai_key)
+                        api_key = get_openai_api_key(manual_openai_key) if transcript_engine == "OpenAI API" else ""
                         language_hint = language_hint_to_api_value(transcript_language_hint_label)
                         transcript_dir = exam_output_dir / "transcripts"
                         transcript_rows, txt_path, transcript_csv_path = build_exam_transcript_outputs(
                             exam_rows=exam_rows, script_id=script_id, session_id=session_id,
                             transcript_dir=transcript_dir, model=transcript_model, api_key=api_key,
-                            language_hint=language_hint,
+                            language_hint=language_hint, engine=transcript_engine,
+                            local_binary_path=locals().get("local_whisper_binary_path", ""),
+                            local_model_path=locals().get("local_whisper_model_path", ""),
                         )
                         st.session_state.exam_transcript_rows = transcript_rows
                         st.session_state.exam_last_transcript_txt = str(txt_path)
                         st.session_state.exam_last_transcript_csv = str(transcript_csv_path)
+                        st.session_state.exam_last_transcript_source_label = transcript_source_display_name(transcript_engine, local_whisper_model_path if transcript_engine == "Local whisper.cpp" else transcript_model)
                         rows_by_index = {str(r.get("item_index")): r for r in exam_rows}
                         for tr in transcript_rows:
                             rows_by_index[str(tr.get("item_index"))] = tr
                         st.session_state.exam_rows = [rows_by_index[k] for k in sorted(rows_by_index, key=lambda x: int(x) if str(x).isdigit() else 999999)]
-                        if transcript_model == "whisper-1":
-                            # Build timestamp-aligned rows immediately from the cached Whisper JSON.
-                            # This avoids a second transcription pass and makes the transcript usable
-                            # by both Structured Review and Timestamp Alignment.
+                        has_cached_timestamps = any(Path(str(r.get("timestamp_json_file", "") or "")).exists() for r in st.session_state.exam_rows)
+                        if has_cached_timestamps:
+                            # Build timestamp-aligned rows immediately from cached timestamp JSON.
+                            # OpenAI whisper-1 and local whisper.cpp both write compatible JSON here.
                             align_dir = exam_output_dir / "timestamp_alignment"
                             align_rows, align_txt_path, align_csv_path, align_docx_path = build_timestamp_anchored_alignment_outputs(
                                 exam_rows=st.session_state.exam_rows,
@@ -7197,14 +8071,21 @@ with tab_exam:
                             st.session_state.exam_last_alignment_txt = str(align_txt_path)
                             st.session_state.exam_last_alignment_csv = str(align_csv_path)
                             st.session_state.exam_last_alignment_docx = str(align_docx_path)
-                            st.success(f"Transcribed {len(transcript_rows)} recording(s) and built timestamp alignment for {len(align_rows)} chunk(s) from the same Whisper-1 pass.")
+                            source_name = "local whisper.cpp" if transcript_engine == "Local whisper.cpp" else "Whisper-1"
+                            st.success(f"Transcribed {len(transcript_rows)} recording(s) with {source_name} and built timestamp alignment for {len(align_rows)} chunk(s).")
                         else:
-                            st.success(f"Transcribed {len(transcript_rows)} recording(s). For unified timestamp review, use whisper-1.")
+                            st.success(f"Transcribed {len(transcript_rows)} recording(s). Timestamp alignment is available when the selected engine provides timestamp JSON.")
                     except Exception as exc:
                         st.error(f"Could not transcribe exam recordings: {exc}")
 
                 transcript_rows = st.session_state.get("exam_transcript_rows", [])
                 if transcript_rows:
+                    source_label = str(st.session_state.get("exam_last_transcript_source_label", "") or transcript_source_display_name(transcript_engine, local_whisper_model_path if transcript_engine == "Local whisper.cpp" else transcript_model))
+                    has_timestamp_json = any(Path(str(r.get("timestamp_json_file", "") or "")).exists() for r in transcript_rows)
+                    st.info("   ".join([
+                        compact_check("Transcript source", True, source_label),
+                        compact_check("Timestamp data", has_timestamp_json, "Available" if has_timestamp_json else "Not available"),
+                    ]))
                     st.dataframe([{k: r.get(k, "") for k in ["item_label", "source_language", "target_language", "transcript_text"]} for r in transcript_rows], use_container_width=True, hide_index=True)
                     txt_value = str(st.session_state.get("exam_last_transcript_txt", "") or "").strip()
                     csv_value = str(st.session_state.get("exam_last_transcript_csv", "") or "").strip()
@@ -7253,7 +8134,7 @@ with tab_exam:
                 st.download_button("Download structured report TXT", data=report_txt_path.read_bytes(), file_name=report_txt_path.name, mime="text/plain")
 
             st.markdown("#### Timestamp-anchored alignment")
-            st.caption("Uses Whisper-1 word timestamps plus a source timing map. If you already transcribed with whisper-1, this reuses the cached timestamp JSON instead of transcribing again.")
+            st.caption("Uses cached OpenAI whisper-1 timestamp JSON plus a source timing map for timestamp-anchored review.")
             if st.button("Build timestamp-anchored alignment", key="build_timestamp_alignment", disabled=not enable_exam_transcription):
                 try:
                     api_key = get_openai_api_key(manual_openai_key)
@@ -7295,15 +8176,32 @@ with tab_exam:
                 if align_txt_path and align_txt_path.exists() and align_txt_path.is_file():
                     st.download_button("Download timestamp alignment TXT", data=align_txt_path.read_bytes(), file_name=align_txt_path.name, mime="text/plain")
 
+            render_context_action_panel("Scoring work area", ["Pick transcript", "Check readiness", "Score my attempt", "Open Drill Studio"], hint="This uses the selected transcript plus source/reference text to create a score summary and custom remedial JSON.")
             st.markdown("#### Rubric score + remedial practice JSON")
             st.caption(
                 "Use the source transcript, reference translation, and your attempt transcript "
                 "to create an estimated practice score plus a usable remedial script JSON for audio/drill work."
             )
+            transcript_rows_for_check = st.session_state.get("exam_transcript_rows", [])
+            alignment_rows_for_check = st.session_state.get("exam_timestamp_alignment_rows", [])
+            source_available = bool(exam_rows)
+            transcript_available = bool(transcript_rows_for_check)
+            reference_available = any(str(r.get("reference_text", "") or "").strip() for r in exam_rows)
+            wpm_available = any(str(r.get("actual_wpm", "") or r.get("source_wpm", "") or "").strip() for r in exam_rows)
+            timestamp_available = bool(alignment_rows_for_check)
+            st.info("   ".join([
+                compact_check("Source", source_available),
+                compact_check("Reference", reference_available),
+                compact_check("Transcript", transcript_available),
+                compact_check("WPM", wpm_available, "Available" if wpm_available else "Optional"),
+                compact_check("Timestamps", timestamp_available, "Available" if timestamp_available else "Optional"),
+            ]))
+            if transcript_engine == "Local whisper.cpp" and timestamp_available:
+                st.caption("Local whisper.cpp timestamps are segment-level. The scoring call still evaluates source + reference + your transcript; timestamps mainly improve review context.")
             drill_source = st.radio(
-                "Review source",
+                "Use this transcript for scoring",
                 ["Full structured transcript", "Timestamp-aligned transcript"],
-                index=0,
+                index=1 if alignment_rows_for_check else 0,
                 horizontal=True,
                 key="exam_simplified_rubric_source",
             )
@@ -7315,17 +8213,19 @@ with tab_exam:
                     st.session_state.get("exam_transcript_rows", []),
                     st.session_state.get("exam_timestamp_alignment_rows", []),
                 )
-            simple_cols = st.columns([1, 1, 1, 2])
-            with simple_cols[0]:
-                drill_target_wpm = st.number_input("Target WPM", min_value=80, max_value=220, value=140, step=5, key="drill_target_wpm")
-            with simple_cols[1]:
-                max_drill_count = st.number_input("Max remedial sections", min_value=5, max_value=40, value=18, step=1, key="max_personalized_drills")
-            with simple_cols[2]:
-                rubric_ai_model = st.selectbox("Rubric AI model", OPENAI_AI_FEEDBACK_MODELS, index=0 if OPENAI_AI_FEEDBACK_MODELS else 0, key="exam_rubric_ai_model")
-            with simple_cols[3]:
-                st.caption("This uses one stronger AI review call over source + reference + your attempt + WPM data + project terminology preferences. It does not use the original JSON terms_used list. The remedial JSON should include weak/high-value transcript sections in paired_segments.")
+            with st.expander("Scoring settings summary", expanded=False):
+                st.markdown(compact_metadata_row([
+                    f"Target WPM: {drill_target_wpm}",
+                    f"Max remedial sections: {max_drill_count}",
+                    f"AI model: {rubric_ai_model}",
+                    "Transcript-only evaluation",
+                ]), unsafe_allow_html=True)
+                st.caption("Change these settings in the dynamic left sidebar under Exam Mode → Scoring & custom practice JSON.")
 
-            if st.button("Generate AI rubric score + remedial JSON", key="build_personalized_drill_plan", disabled=not drill_rows_for_builder):
+            score_disabled = (not drill_rows_for_builder) or (not transcript_available) or (not reference_available)
+            if score_disabled:
+                st.warning("Score My Attempt needs at least a saved recording transcript and reference text. Build/transcribe the exam first, then score.")
+            if st.button("Score my attempt", key="build_personalized_drill_plan", disabled=score_disabled):
                 try:
                     drill_dir = exam_output_dir / "rubric_remedial"
                     api_key = get_openai_api_key(manual_openai_key)
@@ -7376,7 +8276,36 @@ with tab_exam:
                     st.session_state.exam_last_rubric_score_txt = str(score_txt_path)
                     st.session_state.exam_last_rubric_score_csv = str(score_csv_path)
                     st.session_state.exam_last_rubric_score_docx = str(score_docx_path)
-                    st.success(f"AI rubric score + remedial practice JSON prepared with {len(rubric_units)} key-unit finding(s) and {len(drills)} drill item(s).")
+                    if auto_save_exam_evaluation_log:
+                        try:
+                            eval_row = {
+                                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                                "session_id": session_id,
+                                "script_id": script_id,
+                                "title": exam_payload.get("title", ""),
+                                "exam_mode": exam_mode,
+                                "transcript_source": drill_source,
+                                "estimated_score": score_summary.get("estimated_score", ""),
+                                "passing_target": score_summary.get("passing_target", 70),
+                                "likely_level": score_summary.get("likely_level", ""),
+                                "confidence": score_summary.get("confidence", ""),
+                                "meaning_key_unit_accuracy": score_summary.get("meaning_key_unit_accuracy", ""),
+                                "completeness": score_summary.get("completeness", ""),
+                                "legal_terminology": score_summary.get("legal_terminology", ""),
+                                "delivery_grammar": score_summary.get("delivery_grammar", ""),
+                                "target_wpm": drill_target_wpm,
+                                "rubric_unit_count": len(rubric_units),
+                                "remedial_json": str(remedial_json_path),
+                                "score_summary_docx": str(score_docx_path),
+                                "score_summary_csv": str(score_csv_path),
+                                "score_summary_txt": str(score_txt_path),
+                            }
+                            append_exam_evaluation_log(exam_evaluation_log_path, eval_row)
+                            st.session_state.exam_last_evaluation_log_row = eval_row
+                        except Exception as exc:
+                            st.warning(f"Could not save AI evaluation history: {exc}")
+                    st.success(f"Score summary and custom practice JSON are ready: {len(rubric_units)} key-unit finding(s), {len(drills)} drill item(s).")
+                    st.info("Next: open Drill Studio, load the latest remedial JSON, then practice Term Flashcards or Segment Drills.")
                 except Exception as exc:
                     st.error(f"Could not generate AI rubric score + remedial JSON: {exc}")
 
@@ -7422,25 +8351,25 @@ with tab_exam:
             rubric_score_docx_path = Path(rubric_score_docx_value) if rubric_score_docx_value else None
             remedial_json_path = Path(remedial_json_value) if remedial_json_value else None
             if remedial_json_path and remedial_json_path.exists() and remedial_json_path.is_file():
-                st.download_button("Download remedial practice script JSON", data=remedial_json_path.read_bytes(), file_name=remedial_json_path.name, mime="application/json")
+                st.download_button("Download custom practice JSON", data=remedial_json_path.read_bytes(), file_name=remedial_json_path.name, mime="application/json")
             if rubric_score_docx_path and rubric_score_docx_path.exists() and rubric_score_docx_path.is_file():
-                st.download_button("Download rubric score summary DOCX", data=rubric_score_docx_path.read_bytes(), file_name=rubric_score_docx_path.name, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                st.download_button("Download score summary DOCX", data=rubric_score_docx_path.read_bytes(), file_name=rubric_score_docx_path.name, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             if rubric_score_csv_path and rubric_score_csv_path.exists() and rubric_score_csv_path.is_file():
-                st.download_button("Download rubric score summary CSV", data=rubric_score_csv_path.read_bytes(), file_name=rubric_score_csv_path.name, mime="text/csv")
+                st.download_button("Download score summary CSV", data=rubric_score_csv_path.read_bytes(), file_name=rubric_score_csv_path.name, mime="text/csv")
             if rubric_score_txt_path and rubric_score_txt_path.exists() and rubric_score_txt_path.is_file():
-                st.download_button("Download rubric score summary TXT", data=rubric_score_txt_path.read_bytes(), file_name=rubric_score_txt_path.name, mime="text/plain")
+                st.download_button("Download score summary TXT", data=rubric_score_txt_path.read_bytes(), file_name=rubric_score_txt_path.name, mime="text/plain")
             if rubric_csv_path and rubric_csv_path.exists() and rubric_csv_path.is_file():
                 st.download_button("Download key-unit CSV", data=rubric_csv_path.read_bytes(), file_name=rubric_csv_path.name, mime="text/csv")
             if rubric_txt_path and rubric_txt_path.exists() and rubric_txt_path.is_file():
                 st.download_button("Download key-unit TXT", data=rubric_txt_path.read_bytes(), file_name=rubric_txt_path.name, mime="text/plain")
             if drill_json_path and drill_json_path.exists() and drill_json_path.is_file():
-                st.download_button("Download Drill Studio JSON", data=drill_json_path.read_bytes(), file_name=drill_json_path.name, mime="application/json")
+                st.download_button("Download interactive drill JSON", data=drill_json_path.read_bytes(), file_name=drill_json_path.name, mime="application/json")
             if drill_docx_path and drill_docx_path.exists() and drill_docx_path.is_file():
-                st.download_button("Download short remedial drill plan DOCX", data=drill_docx_path.read_bytes(), file_name=drill_docx_path.name, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                st.download_button("Download quick drill plan DOCX", data=drill_docx_path.read_bytes(), file_name=drill_docx_path.name, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             if drill_csv_path and drill_csv_path.exists() and drill_csv_path.is_file():
-                st.download_button("Download short remedial drill plan CSV", data=drill_csv_path.read_bytes(), file_name=drill_csv_path.name, mime="text/csv")
+                st.download_button("Download quick drill plan CSV", data=drill_csv_path.read_bytes(), file_name=drill_csv_path.name, mime="text/csv")
             if drill_txt_path and drill_txt_path.exists() and drill_txt_path.is_file():
-                st.download_button("Download short remedial drill plan TXT", data=drill_txt_path.read_bytes(), file_name=drill_txt_path.name, mime="text/plain")
+                st.download_button("Download quick drill plan TXT", data=drill_txt_path.read_bytes(), file_name=drill_txt_path.name, mime="text/plain")
 
             if st.button("Build combined exam audio files", key="build_exam_combined"):
                 try:
@@ -7478,30 +8407,52 @@ with tab_exam:
                             if val:
                                 transcript_paths.append(Path(val))
                     all_paths = made + [csv_path] + transcript_paths + [Path(str(r.get("response_audio", ""))) for r in exam_rows]
-                    zip_path = make_zip_from_paths(all_paths, exam_output_dir / f"{sanitize_filename_part(script_id)}_{session_id}_exam_outputs.zip")
+                    bundle_manifest = {
+                        "script_id": script_id,
+                        "session_id": session_id,
+                        "exam_mode": exam_mode,
+                        "transcript_source": str(st.session_state.get("exam_last_transcript_source_label", "Not transcribed") or "Not transcribed"),
+                        "recordings": len(exam_rows),
+                        "transcript_rows": len(st.session_state.get("exam_transcript_rows", [])),
+                        "timestamp_alignment_rows": len(st.session_state.get("exam_timestamp_alignment_rows", [])),
+                        "score_ready": bool(st.session_state.get("exam_last_rubric_score_txt")),
+                        "remedial_json_ready": bool(st.session_state.get("exam_last_remedial_drill_script_json")),
+                        "created_at": datetime.now().isoformat(timespec="seconds"),
+                    }
+                    zip_path = make_exam_bundle_zip(all_paths, exam_output_dir / f"{sanitize_filename_part(script_id)}_{session_id}_exam_review_bundle.zip", bundle_manifest)
                     st.session_state.exam_last_zip = str(zip_path) if zip_path else ""
-                    st.success("Combined exam outputs prepared.")
+                    st.success("Clean exam review bundle prepared.")
                 except Exception as exc:
                     st.error(f"Could not build combined exam files: {exc}")
 
             zip_value = str(st.session_state.get("exam_last_zip", "") or "").strip()
             zip_path = Path(zip_value) if zip_value else None
             if zip_path and zip_path.exists() and zip_path.is_file():
-                st.download_button("Download exam outputs ZIP", data=zip_path.read_bytes(), file_name=zip_path.name, mime="application/zip")
+                st.download_button("Download clean exam review bundle", data=zip_path.read_bytes(), file_name=zip_path.name, mime="application/zip")
         else:
             st.info("No exam recordings saved yet.")
 
 
-with tab_drills:
+if selected_workspace == "Drill Studio":
     st.subheader("Drill Studio")
-    st.caption("Practice remedial JSON files with term flashcards from `terms_used` and segment drills from `paired_segments`.")
+    render_context_action_panel("Drill Studio — work panel", ["Load remedial JSON", "Practice terms", "Practice segments", "Save scores"], hint="Use Term Flashcards for quick retrieval and Segment Drills for full interpretation reps.")
+    show_guided_steps([
+        ("1", "Load drills", "Use the latest remedial JSON from Exam Mode or upload one."),
+        ("2", "Flashcards", "Drill weak legal terms from the JSON terms_used section."),
+        ("3", "Segments", "Redo weak/high-value paired_segments and compare to the reference."),
+    ])
+    st.caption("Use remedial JSON created after scoring an exam attempt. Term Flashcards build retrieval; Segment Drills redo weak or high-value sections.")
+    with st.expander("How to use Drill Studio", expanded=False):
+        st.write("**Term Flashcards** use the JSON `terms_used` section for vocabulary and legal phrase retrieval.")
+        st.write("**Segment Drills** use the JSON `paired_segments` section so you can interpret weak or high-value source sections again and compare against the reference.")
+        st.write("After scoring, choose **Use latest generated remedial JSON** to continue directly from Exam Mode.")
 
     if "drill_studio_session_id" not in st.session_state:
         st.session_state.drill_studio_session_id = f"drill-session-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
     if "drill_studio_session_rows" not in st.session_state:
         st.session_state.drill_studio_session_rows = []
 
-    source_choice = st.radio("Drill set source", ["Use latest generated remedial JSON", "Upload drill JSON"], horizontal=True, key="drill_studio_source_choice")
+    source_choice = st.radio("Choose drill source", ["Use latest generated remedial JSON", "Upload drill JSON"], horizontal=True, key="drill_studio_source_choice")
     drill_json_data: dict[str, Any] | None = None
     if source_choice == "Use latest generated remedial JSON":
         latest_candidates = [
@@ -7545,6 +8496,12 @@ with tab_drills:
         st.info("This JSON does not contain terms, paired segments, or drill cards that Drill Studio can practice.")
         st.stop()
 
+    render_context_action_panel(
+        "Loaded drill set",
+        [drill_set_id],
+        statuses=[("Terms", bool(term_drills)), ("Segments", bool(segment_drills)), ("Other cards", bool(legacy_drills))],
+        hint="Open the matching practice tab below. Settings and history are collapsed to keep the work area short.",
+    )
     top_cols = st.columns(4)
     top_cols[0].metric("Term flashcards", len(term_drills))
     top_cols[1].metric("Segment drills", len(segment_drills))
@@ -7570,7 +8527,7 @@ with tab_drills:
         with a4:
             drill_audio_only = st.checkbox("Audio-only prompt", value=False, key="drill_audio_only")
         drill_audio_speed = st.selectbox("Playback speed", [0.85, 1.0, 1.10, 1.20, 1.30, 1.40, 1.50], index=1, format_func=lambda x: f"{x:.2f}x", key="drill_audio_speed")
-        drill_audio_cache_dir = Path(st.text_input("Drill audio cache folder", value=str((RUNTIME_CACHE_DIR / "drill_audio_cache").resolve()), key="drill_audio_cache_dir")).expanduser()
+        drill_audio_cache_dir = Path(st.text_input("Drill audio cache folder", value=str((APP_DIR / "drill_audio_cache").resolve()), key="drill_audio_cache_dir")).expanduser()
 
     practice_tabs = []
     labels = []
@@ -7612,7 +8569,7 @@ with tab_drills:
             st.info("No Drill Studio history yet.")
 
 
-with tab_history:
+if selected_workspace == "Study History":
     st.subheader("Study history")
     st.caption("Review saved practice scores and long-term practice patterns.")
 
@@ -7635,7 +8592,7 @@ with tab_history:
             )
 
     if history_df.empty:
-        st.info("No persistent study history yet. Score a few segments in the Consecutive practice tab with auto-save enabled.")
+        st.info("No old self-score history is being collected. Use AI exam evaluation results above for performance tracking.")
     else:
         scripts = sorted([s for s in history_df["script_id"].dropna().unique().tolist() if str(s).strip()])
         directions = sorted([d for d in history_df["direction"].dropna().unique().tolist() if "nan" not in str(d).lower()])
@@ -7715,7 +8672,7 @@ with tab_history:
             st.dataframe(filtered[PRACTICE_LOG_FIELDS].sort_values("timestamp", ascending=False).head(int(show_history_preview_rows)), use_container_width=True, hide_index=True)
 
         with st.expander("History maintenance"):
-            st.warning("This clears the runtime CSV for the current cloud session. Download your history first if you want to keep it.")
+            st.warning("This affects the persistent CSV file on your Mac, not just the current app session.")
             if st.button("Back up history CSV now"):
                 backup = persistent_log_path.with_name(f"practice_log_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
                 try:
@@ -7736,7 +8693,7 @@ with tab_history:
 
 
 
-with tab_terms:
+if selected_workspace == "Term Review":
     st.subheader("Term review")
     st.caption("Practice legal terms with spaced review, spoken prompts, answer audio, and persistent scheduling.")
 
@@ -8061,7 +9018,7 @@ with tab_terms:
                 )
 
             with st.expander("Term review maintenance"):
-                st.warning("This clears the runtime term review CSV for the current cloud session. Download your history first if you want to keep it.")
+                st.warning("This affects the persistent term review CSV file on your Mac.")
                 if st.button("Back up term review CSV now"):
                     backup = term_review_log_path.with_name(f"term_review_log_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
                     try:
