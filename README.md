@@ -1,138 +1,92 @@
-# Interpreter Audio Generator — Web Version
+# Interpreter Audio Generator — Web Build
 
-This is the Streamlit Cloud version of the interpreter training app. It is designed for browser-based practice, temporary exam-mode recordings, transcription, rubric-style feedback, and remedial drill JSON generation.
+This is the Streamlit Cloud/Web version of the Interpreter Audio Generator.
 
-## Main workflow
+## Entry point
 
-1. Upload an interpreter-training JSON script.
-2. Generate or play source-only practice audio.
-3. Use Exam Mode to record a consecutive or simultaneous attempt.
-4. Transcribe the saved exam recording with OpenAI transcription.
-5. Review the structured transcript: source text, reference interpretation, and your attempt.
-6. Generate a rubric score and remedial practice JSON.
-7. Download the summary, transcript files, and remedial JSON.
-8. Load the remedial JSON in Drill Studio or run it through the audio generator.
+Use:
 
-## Current major features
-
-- JSON script upload and validation
-- Audio generation with Edge TTS
-- Source-only practice audio
-- Natural same-speaker source-only grouping for simultaneous passages
-- Consecutive and simultaneous practice modes
-- Exam Mode with browser microphone recording
-- OpenAI transcription, with `whisper-1` as the default model
-- Structured transcript review
-- Rubric score + performance summary
-- AI-generated remedial practice JSON based on:
-  - source text
-  - reference interpretation
-  - your transcript
-  - WPM data when available
-  - project terminology preferences
-- Drill Studio with:
-  - Term Flashcards from `terms_used`
-  - Segment Drills from `paired_segments`
-  - compatibility with older interactive drill JSON files
-- Downloadable CSV/TXT/DOCX/JSON/ZIP outputs
-
-## Important cloud note
-
-Streamlit Cloud storage is temporary. Generated audio, recordings, transcripts, drill history, and ZIP files may disappear when the app restarts or the session expires. Download any files you want to keep.
-
-## Files in this deployment
-
-- `audio_generator_streamlit_cloud_V2.py` — main Streamlit Cloud app
-- `Current_Audio_Generator_Script_JSON_to_MP3_V7.py` — audio generator module used by the app
-- `requirements.txt` — Python dependencies
-- `packages.txt` — system packages for Streamlit Cloud
-
-## Streamlit Cloud setup
-
-Set the app entry point to:
-
-```text
-interpreter_audio_generator_web_V2_phase3C33_readme_update/audio_generator_streamlit_cloud_V2.py
+```bash
+streamlit run audio_generator_streamlit_cloud_V3.py
 ```
 
-Or, if you place the files at the repository root:
+For Streamlit Community Cloud, set the app entry file to:
 
 ```text
-audio_generator_streamlit_cloud_V2.py
+audio_generator_streamlit_cloud_V3.py
 ```
 
-## Python dependencies
+## Current web sync
 
-The app expects these packages from `requirements.txt`:
+This build syncs the recent Mac UI and exam workflow updates while keeping the app cloud-safe:
 
-```text
-streamlit>=1.35
-edge-tts>=6.1
-pandas>=2.0
-openai>=1.0
-python-docx>=1.1
+- Guided workflow UI
+- Compact layout and keyboard shortcuts
+- Context Action Panel / compact work area
+- Dynamic sidebar settings by workspace
+- Drill Studio updates for `terms_used` and `paired_segments`
+- Consecutive Exam Mode auto-record workflow when browser permissions allow it
+- OpenAI transcription with `whisper-1` default
+- Timestamp-anchored review using OpenAI whisper-1 timestamp JSON
+- Rubric score + remedial JSON workflow
+- AI exam evaluation tracking
+- Clean exam review bundle ZIP
+
+## Mac-only features intentionally excluded
+
+The web build does **not** include local whisper.cpp transcription or local Whisper timestamp support. Those remain Mac-only because they require a local binary, model files, and local filesystem paths.
+
+## Required packages
+
+Install Python requirements:
+
+```bash
+pip install -r requirements.txt
 ```
 
-## System dependency
-
-The app uses `ffmpeg` / `ffprobe` for audio conversion, concatenation, compression, and WPM timing estimates. Streamlit Cloud should install this from `packages.txt`:
-
-```text
-ffmpeg
-```
+Streamlit Cloud should also install `ffmpeg` from `packages.txt`.
 
 ## OpenAI API key
 
-For transcription and rubric/remedial JSON generation, provide an OpenAI API key either in the app field or as a Streamlit secret.
-
-Recommended Streamlit secret:
-
-```toml
-OPENAI_API_KEY = "your_key_here"
-```
-
-The app checks the key in this order:
+The app checks for the API key in this order:
 
 1. Manual key entered in the app
 2. `st.secrets["OPENAI_API_KEY"]`
-3. Environment variable `OPENAI_API_KEY`
+3. `OPENAI_API_KEY` environment variable
 
-## Recommended Exam Mode settings
+For Streamlit Cloud, add this to Secrets:
 
-- Basic transcription model: `whisper-1`
-- Language hint: `Auto` unless you know the response language
-- Rubric AI model: use the strongest available model you are comfortable paying for
-- Download the exam ZIP after each full run
-
-## Remedial JSON format
-
-The remedial JSON is intended to be usable as a normal practice script. It should include:
-
-```json
-{
-  "script_id": "...",
-  "category": "Simultaneous Remedial Drill",
-  "title": "...",
-  "format": "simultaneous_remedial_drill_with_flashcards",
-  "audio_profile": {...},
-  "terms_used": [...],
-  "performance_targets": [...],
-  "english_script": "...",
-  "spanish_script": "...",
-  "paired_segments": [...]
-}
+```toml
+OPENAI_API_KEY = "sk-..."
 ```
 
-`terms_used` feeds Term Flashcards. `paired_segments` feeds Segment Drills.
+## Temporary storage note
 
-## Deployment checklist
+Generated audio, transcripts, score reports, remedial JSON, logs, and exam bundles are stored in a temporary runtime folder. Download any output you want to keep.
 
-Before pushing to GitHub / redeploying on Streamlit Cloud:
+## Recommended workflow
 
-- Confirm `audio_generator_streamlit_cloud_V2.py` is the updated file.
-- Confirm `Current_Audio_Generator_Script_JSON_to_MP3_V7.py` is present.
-- Confirm `requirements.txt` includes `streamlit`, `edge-tts`, `pandas`, `openai`, and `python-docx`.
-- Confirm `packages.txt` includes `ffmpeg`.
-- Add `OPENAI_API_KEY` to Streamlit secrets if you do not want to enter it manually.
-- Redeploy the Streamlit app.
-- Test one short JSON script, one transcription, one rubric/remedial JSON run, and one Drill Studio load.
+1. Upload a JSON script.
+2. Generate/play practice audio.
+3. Open Exam Mode.
+4. Record a consecutive or simultaneous attempt.
+5. Transcribe with OpenAI whisper-1.
+6. Review transcript/source/reference.
+7. Score the attempt and create remedial JSON.
+8. Practice that JSON in Drill Studio.
+9. Download the exam bundle and remedial practice files.
+
+## Supported JSON structure
+
+The app is designed around JSON scripts with:
+
+- `script_id`
+- `title`
+- `format`
+- `audio_profile`
+- `terms_used`
+- `english_script`
+- `spanish_script`
+- `paired_segments`
+
+Older files may still work, but the best Drill Studio and Exam Mode experience comes from scripts with `terms_used` and `paired_segments`.
